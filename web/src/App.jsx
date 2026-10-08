@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { openWorld, call } from './client.js';
 import Landing from './pages/Landing.jsx';
+import ReloadGuard from './components/ReloadGuard.jsx';
 import Overview from './pages/Overview.jsx';
 import MapPage from './pages/MapPage.jsx';
 import Players from './pages/Players.jsx';
@@ -92,6 +93,7 @@ export default function App() {
           <small>Processado localmente no navegador</small>
         </div>
       </aside>
+      <ReloadGuard worldName={world.label} />
       <main className="content" key={current.id}>
         <Page world={world} icon={icon} go={go} nav={nav} />
       </main>
