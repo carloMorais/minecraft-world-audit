@@ -1,5 +1,7 @@
 # mcx — extrator de dados de mundos Minecraft Bedrock
 
+**Use online:** https://minecraft-world-audit.vercel.app — arraste seu `.mcworld` na página. O arquivo não sai do seu computador.
+
 Lê arquivos `.mcworld` (ou a pasta de um mundo) e extrai tudo o que o Bedrock grava no save. São duas formas de uso, com o mesmo código de leitura:
 
 - **Interface web** (React + Vite): roda **100% no navegador**. O arquivo é processado localmente num Web Worker e nada é enviado a servidor nenhum.
