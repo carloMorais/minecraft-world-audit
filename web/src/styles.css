@@ -459,7 +459,7 @@ li.done .step-dot { background: var(--accent); border-color: var(--accent); colo
 .map-toolbar { position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; gap: 6px; }
 .map-hud { position: absolute; left: 12px; bottom: 12px; display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 10px; background: rgba(10, 13, 18, 0.85); border: 1px solid var(--border-strong); font-family: var(--mono); font-size: 12px; backdrop-filter: blur(6px); }
 .map-hud .sep { width: 1px; height: 14px; background: var(--border-strong); }
-.map-side { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--border); overflow: hidden; min-height: 0; }
+.map-side { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--border); overflow-y: auto; min-height: 0; max-height: calc(100vh - 150px); }
 .map-side h4 { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-top: 4px; }
 .layer { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
 .layer:hover { background: rgba(255, 255, 255, 0.04); }
@@ -469,7 +469,23 @@ li.done .step-dot { background: var(--accent); border-color: var(--accent); colo
 .marker-card { display: flex; flex-direction: column; gap: 3px; padding: 12px; border-radius: 11px; background: rgba(0, 0, 0, 0.3); border: 1px solid color-mix(in srgb, var(--c) 50%, transparent); }
 .marker-card small { color: var(--muted); }
 .marker-card code { margin: 4px 0 6px; align-self: flex-start; }
-.marker-list { overflow-y: auto; flex: 1; min-height: 120px; display: flex; flex-direction: column; gap: 1px; }
+.marker-list { overflow-y: auto; flex: 1 0 180px; min-height: 180px; display: flex; flex-direction: column; gap: 1px; }
+.sq { display: inline-block; width: 9px; height: 9px; border-radius: 2px; flex: none; box-shadow: 0 0 0 1.5px rgba(8, 10, 14, 0.9); }
+.marker-items { display: flex; flex-wrap: wrap; gap: 3px; margin: 4px 0 6px; }
+.cfilter { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 11px; background: rgba(217, 161, 74, 0.06); border: 1px solid rgba(217, 161, 74, 0.25); }
+.cfilter-head { display: flex; align-items: center; gap: 6px; font-weight: 650; font-size: 13px; color: #f0cf95; }
+.cfilter-head small { margin-left: auto; color: var(--muted); font-weight: 500; font-family: var(--mono); font-size: 11px; }
+.search-sm { padding: 3px 6px 3px 10px; border-radius: 9px; }
+.search-sm input { padding: 4px 0; font-size: 12.5px; }
+.icon-x { display: grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 6px; background: rgba(255, 255, 255, 0.06); cursor: pointer; color: var(--muted); }
+.cfilter-states { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+.cfilter-states input { accent-color: #d9a14a; }
+.cfilter-types { display: flex; flex-wrap: wrap; gap: 5px; }
+.ctype { --c: #d9a14a; display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; cursor: pointer; font-size: 12px; color: var(--faint); }
+.ctype .sq { background: var(--c); opacity: 0.35; }
+.ctype small { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+.ctype.on { color: var(--text); border-color: color-mix(in srgb, var(--c) 55%, transparent); background: color-mix(in srgb, var(--c) 12%, transparent); }
+.ctype.on .sq { opacity: 1; }
 .marker-list button { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 0; background: none; border-radius: 7px; cursor: pointer; text-align: left; font-size: 12.5px; }
 .marker-list button:hover { background: rgba(255, 255, 255, 0.05); }
 .marker-list small { margin-left: auto; color: var(--faint); font-family: var(--mono); font-size: 11px; }

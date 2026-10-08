@@ -14,6 +14,7 @@ import { findItems, worldItemTotals } from '../../src/extract/search.js';
 import { renderSurface } from '../../src/extract/surface.js';
 
 const DIM_IDS = { overworld: 0, nether: 1, the_end: 2 };
+const STORAGE = new Set(['Chest', 'Barrel', 'ShulkerBox', 'Hopper', 'Dispenser', 'Dropper', 'Furnace', 'BlastFurnace', 'Smoker', 'BrewingStand', 'Crafter', 'EnderChest', 'ChiseledBookshelf', 'DecoratedPot']);
 let world = null;
 let cache = {};
 
@@ -73,6 +74,10 @@ const methods = {
   players: () => players(),
   entities: () => entities(),
   containers: () => blockEntities().filter(b => b.items?.length || b.item || b.record || b.book),
+  // Every item-holding block, including empty ones and never-opened loot containers (map layer).
+  storage: () => memo('storage', () => blockEntities()
+    .filter(b => STORAGE.has(b.id) || b.items?.length || b.item || b.record || b.book)
+    .map(b => ({ id: b.id, customName: b.customName, dimension: b.dimension, position: b.position, items: b.items, item: b.item, record: b.record, book: b.book, lootTable: b.lootTable, pairedWith: b.pairedWith }))),
   misc: () => misc(),
   biomes: () => memo('biomes', () => biomeCensus(world)),
   blocks: () => memo('blocks', () => blockCensus(world)),

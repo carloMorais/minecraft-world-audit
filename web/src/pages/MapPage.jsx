@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { ZoomIn, ZoomOut, Maximize, LocateFixed, Download, Users, Skull, DoorOpen, Home, PawPrint, Flag, Bed, Crosshair } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, LocateFixed, Download, Users, Skull, DoorOpen, Home, PawPrint, Flag, Bed, Crosshair, Archive, Search, X } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { Tabs, Loading, ErrorBox, PageHeader } from '../components/ui.jsx';
+import { Slot, TooltipScope } from '../components/inventory.jsx';
+import McText, { stripCodes } from '../components/McText.jsx';
 import { fmt, DIM_LABEL, DIM_COLOR, prettyName, sortDims } from '../format.js';
+import { CONTAINER_LABEL, CONTAINER_COLOR, containerItems } from '../containers.js';
 
 const LAYERS = [
   { id: 'players', label: 'Jogadores', icon: Users, color: '#5fd068' },
@@ -12,12 +15,37 @@ const LAYERS = [
   { id: 'villages', label: 'Vilas', icon: Home, color: '#f2c14e' },
   { id: 'pets', label: 'Pets e nomeados', icon: PawPrint, color: '#f08a24' },
   { id: 'world', label: 'Spawn do mundo', icon: Flag, color: '#ffffff' },
+  { id: 'containers', label: 'Baús e containers', icon: Archive, color: '#d9a14a' },
 ];
 
-function useMarkers(dim) {
+const DEFAULT_CFILTER = { types: null, withItems: true, empty: false, loot: false, q: '' };
+
+/** True when an item (or anything nested inside it, e.g. a shulker box) matches the regex. */
+const itemMatches = (it, re) => re.test(it.item) || re.test(prettyName(it.item))
+  || (it.customName && re.test(stripCodes(it.customName))) || it.contents?.some(c => itemMatches(c, re));
+
+function safeRegex(q) {
+  try { return new RegExp(q, 'i'); } catch { return new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'); }
+}
+
+/** Storage blocks of one dimension that pass the side-panel container filter. */
+function filterContainers(all, dim, f) {
+  const re = f.q.trim() ? safeRegex(f.q.trim()) : null;
+  return all.filter(b => {
+    if (b.dimension !== dim) return false;
+    if (f.types && !f.types.has(b.id)) return false;
+    const items = containerItems(b);
+    if (re) return items.some(it => itemMatches(it, re));
+    const state = items.length ? 'withItems' : b.lootTable ? 'loot' : 'empty';
+    return f[state];
+  });
+}
+
+function useMarkers(dim, cfilter) {
   const players = useQuery('players');
   const misc = useQuery('misc');
   const summary = useQuery('summary');
+  const storage = useQuery('storage');
   return useMemo(() => {
     const m = [];
     const P = players.data || [];
@@ -44,8 +72,18 @@ function useMarkers(dim) {
     }
     const L = summary.data?.level;
     if (L && dim === 'overworld' && L.spawn) m.push({ layer: 'world', x: L.spawn.x, z: L.spawn.z, label: 'Spawn do mundo', detail: L.spawn.y === 32767 ? 'altura automática' : `Y ${L.spawn.y}` });
+    for (const b of filterContainers(storage.data || [], dim, cfilter)) {
+      const items = containerItems(b);
+      const total = items.reduce((a, it) => a + it.count, 0);
+      m.push({
+        layer: 'containers', x: b.position[0] + 0.5, z: b.position[2] + 0.5, y: b.position[1],
+        label: b.customName ? stripCodes(b.customName) : CONTAINER_LABEL[b.id] || b.id,
+        detail: items.length ? `${fmt(total)} itens em ${items.length} slots` : b.lootTable ? 'Loot nunca aberto' : 'Vazio',
+        color: CONTAINER_COLOR[b.id] || '#d9a14a', square: true, container: b,
+      });
+    }
     return m;
-  }, [players.data, misc.data, summary.data, dim]);
+  }, [players.data, misc.data, summary.data, storage.data, dim, cfilter]);
 }
 
 export default function MapPage() {
@@ -53,7 +91,9 @@ export default function MapPage() {
   const dims = summary.data ? sortDims(Object.keys(summary.data.coverage)) : ['overworld'];
   const [dim, setDim] = useState('overworld');
   const surface = useQuery('surface', { dim });
-  const markers = useMarkers(dim);
+  const [cfilter, setCfilter] = useState(DEFAULT_CFILTER);
+  const markers = useMarkers(dim, cfilter);
+  const storage = useQuery('storage');
   const [layers, setLayers] = useState(() => new Set(LAYERS.map(l => l.id)));
   const canvasRef = useRef();
   const wrapRef = useRef();
@@ -97,16 +137,26 @@ export default function MapPage() {
         ctx.strokeRect((mk.box.min[0] - ox) * scale, (mk.box.min[2] - oz) * scale, (mk.box.max[0] - mk.box.min[0]) * scale, (mk.box.max[2] - mk.box.min[2]) * scale);
         ctx.setLineDash([]);
       }
-      const r = mk === selected ? 9 : 6.5;
-      ctx.beginPath();
-      ctx.arc(x, y, r + 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(8,10,14,0.85)';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = L.color;
-      ctx.fill();
-      if (scale >= 1 || mk.layer === 'players' || mk === selected) {
+      const color = mk.color || L.color;
+      if (mk.square) {
+        // containers: small square chips so they read differently from the round markers
+        const h = mk === selected ? 7 : scale >= 2 ? 5 : 4;
+        ctx.fillStyle = 'rgba(8,10,14,0.9)';
+        ctx.fillRect(x - h - 2, y - h - 2, (h + 2) * 2, (h + 2) * 2);
+        ctx.fillStyle = color;
+        ctx.fillRect(x - h, y - h, h * 2, h * 2);
+      } else {
+        const r = mk === selected ? 9 : 6.5;
+        ctx.beginPath();
+        ctx.arc(x, y, r + 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(8,10,14,0.85)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+      if ((mk.square ? scale >= 3 : scale >= 1) || mk.layer === 'players' || mk === selected) {
         ctx.font = '600 12px Inter, sans-serif';
         const tw = ctx.measureText(mk.label).width;
         ctx.fillStyle = 'rgba(8,10,14,0.78)';
@@ -281,24 +331,41 @@ export default function MapPage() {
           })}
           {(selected || hover?.marker) && (() => {
             const mk = selected || hover.marker;
-            const L = LAYERS.find(l => l.id === mk.layer);
+            const color = mk.color || LAYERS.find(l => l.id === mk.layer).color;
+            const items = mk.container ? containerItems(mk.container) : [];
+            const kind = mk.container ? CONTAINER_LABEL[mk.container.id] || mk.container.id : null;
             return (
-              <div className="marker-card" style={{ '--c': L.color }}>
-                <span className="dot" style={{ background: L.color }} />
-                <strong>{mk.label}</strong>
-                <small>{mk.detail}</small>
-                <code>X {Math.round(mk.x)} · Z {Math.round(mk.z)}</code>
+              <div className="marker-card" style={{ '--c': color }}>
+                <span className={mk.square ? 'sq' : 'dot'} style={{ background: color }} />
+                <strong>{mk.container?.customName ? <McText text={mk.container.customName} /> : mk.label}</strong>
+                <small>{mk.container?.customName ? `${kind} · ` : ''}{mk.detail}</small>
+                <code>X {Math.floor(mk.x)}{mk.y != null ? ` · Y ${mk.y}` : ''} · Z {Math.floor(mk.z)}</code>
+                {items.length > 0 && (
+                  <TooltipScope>
+                    {tip => <div className="marker-items">{items.slice(0, 27).map((it, i) => <Slot key={i} it={it} size={34} tipHandlers={tip} />)}</div>}
+                  </TooltipScope>
+                )}
+                {items.length > 27 && <small>+{items.length - 27} slots</small>}
                 <button type="button" className="btn btn-sm" onClick={() => centerOn(mk.x, mk.z, 4)}>Aproximar aqui</button>
               </div>
             );
           })()}
+          {layers.has('containers') && (
+            <ContainerFilter
+              all={storage.data || []}
+              dim={dim}
+              value={cfilter}
+              onChange={f => { setCfilter(f); setSelected(null); }}
+              shown={markers.filter(m => m.layer === 'containers').length}
+            />
+          )}
           <h4>Lista</h4>
           <div className="marker-list">
-            {markers.filter(m => layers.has(m.layer)).map((m, i) => {
+            {markers.filter(m => layers.has(m.layer)).slice(0, 400).map((m, i) => {
               const L = LAYERS.find(l => l.id === m.layer);
               return (
                 <button type="button" key={i} onClick={() => { setSelected(m); centerOn(m.x, m.z, 3); }}>
-                  <span className="dot" style={{ background: L.color }} /> {m.label}
+                  <span className={m.square ? 'sq' : 'dot'} style={{ background: m.color || L.color }} /> {m.label}
                   <small>{Math.round(m.x)}, {Math.round(m.z)}</small>
                 </button>
               );
@@ -306,6 +373,45 @@ export default function MapPage() {
           </div>
         </aside>
       </div>
+    </div>
+  );
+}
+
+function ContainerFilter({ all, dim, value, onChange, shown }) {
+  const types = {};
+  for (const b of all) if (b.dimension === dim) types[b.id] = (types[b.id] || 0) + 1;
+  const ordered = Object.entries(types).sort((a, b) => b[1] - a[1]);
+  const isOn = t => !value.types || value.types.has(t);
+  const toggleType = t => {
+    const cur = new Set(value.types || Object.keys(types));
+    if (cur.has(t)) cur.delete(t); else cur.add(t);
+    onChange({ ...value, types: cur.size === Object.keys(types).length ? null : cur });
+  };
+  const states = [['withItems', 'Com itens'], ['empty', 'Vazios'], ['loot', 'Loot nunca aberto']];
+  const dirty = value.types || value.q || value.empty || value.loot || !value.withItems;
+  return (
+    <div className="cfilter">
+      <div className="cfilter-head"><Archive size={14} /> Filtrar containers <small>{fmt(shown)} no mapa</small></div>
+      <label className="search search-sm">
+        <Search size={14} />
+        <input value={value.q} onChange={e => onChange({ ...value, q: e.target.value })} placeholder="Contém item… (diamond, elytra)" spellCheck={false} />
+        {value.q && <button type="button" className="icon-x" onClick={() => onChange({ ...value, q: '' })}><X size={13} /></button>}
+      </label>
+      {!value.q.trim() && (
+        <div className="cfilter-states">
+          {states.map(([k, label]) => (
+            <label key={k} className="check"><input type="checkbox" checked={value[k]} onChange={e => onChange({ ...value, [k]: e.target.checked })} /> {label}</label>
+          ))}
+        </div>
+      )}
+      <div className="cfilter-types">
+        {ordered.map(([t, n]) => (
+          <button type="button" key={t} className={`ctype${isOn(t) ? ' on' : ''}`} onClick={() => toggleType(t)} style={{ '--c': CONTAINER_COLOR[t] || '#d9a14a' }}>
+            <span className="sq" /> {CONTAINER_LABEL[t] || t} <small>{n}</small>
+          </button>
+        ))}
+      </div>
+      {dirty && <button type="button" className="link-btn" onClick={() => onChange(DEFAULT_CFILTER)}>Limpar filtros</button>}
     </div>
   );
 }

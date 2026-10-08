@@ -5,18 +5,7 @@ import { Async, PageHeader, Tabs, SearchInput, Empty, Badge } from '../component
 import { SlotGrid, Slot, TooltipScope } from '../components/inventory.jsx';
 import { fmt, prettyName, DIM_LABEL, DIM_COLOR } from '../format.js';
 import McText from '../components/McText.jsx';
-
-const LAYOUT = {
-  Chest: [27, 9], Barrel: [27, 9], ShulkerBox: [27, 9], Hopper: [5, 5], Dispenser: [9, 3], Dropper: [9, 3],
-  Furnace: [3, 3], BlastFurnace: [3, 3], Smoker: [3, 3], BrewingStand: [5, 5], Crafter: [9, 3], ChiseledBookshelf: [6, 3],
-  DecoratedPot: [1, 1], Campfire: [4, 4], Lectern: [1, 1], Jukebox: [1, 1], ItemFrame: [1, 1], GlowItemFrame: [1, 1], FlowerPot: [1, 1],
-};
-const LABEL = {
-  Chest: 'Baú', Barrel: 'Barril', ShulkerBox: 'Caixa de Shulker', Hopper: 'Funil', Dispenser: 'Ejetor', Dropper: 'Liberador',
-  Furnace: 'Fornalha', BlastFurnace: 'Alto-forno', Smoker: 'Defumador', BrewingStand: 'Suporte de poções', DecoratedPot: 'Vaso decorado',
-  Lectern: 'Atril', Jukebox: 'Toca-discos', ItemFrame: 'Moldura', GlowItemFrame: 'Moldura brilhante', FlowerPot: 'Vaso', Campfire: 'Fogueira',
-  ChiseledBookshelf: 'Estante entalhada', Crafter: 'Fabricador',
-};
+import { CONTAINER_LAYOUT as LAYOUT, CONTAINER_LABEL as LABEL } from '../containers.js';
 
 function ContainerCard({ b, tip }) {
   const items = [...(b.items || []), ...[b.item, b.record, b.book].filter(Boolean)];
