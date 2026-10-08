@@ -1,0 +1,7 @@
+node_modules/
+web/dist/
+.vercel/
+
+# Personal worlds used for local testing (~100 MB each, close to GitHub's file limit)
+samples/
+*.mcworld
