@@ -13,8 +13,8 @@ import Compare from './pages/Compare.jsx';
 import { ItemsPage, PlayersPage, TerrainPage, ProgressPage, AdvancedPage } from './pages/sections.jsx';
 
 const PAGES = [
-  { id: 'map', label: 'Mapa', icon: MapIcon, el: MapPage, group: 'Mundo' },
   { id: 'overview', label: 'Visão geral', icon: LayoutDashboard, el: Overview, group: 'Mundo' },
+  { id: 'map', label: 'Mapa', icon: MapIcon, el: MapPage, group: 'Mundo' },
   { id: 'progress', label: 'Progresso', icon: Trophy, el: ProgressPage, group: 'Mundo' },
   { id: 'players', label: 'Jogadores', icon: Users, el: PlayersPage, group: 'Conteúdo' },
   { id: 'items', label: 'Itens', icon: Backpack, el: ItemsPage, group: 'Conteúdo' },
@@ -132,7 +132,7 @@ export default function App() {
       setWorld({ ...info, label: info.name || input.name || input.file?.name });
       const bytes = await call('icon').catch(() => null);
       setIcon(old => { if (old) URL.revokeObjectURL(old); return bytes ? URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' })) : null; });
-      window.location.hash = 'map';
+      window.location.hash = 'overview';
     } catch (e) {
       // the worker already dropped the previous world, so there is nothing left to show
       setWorld(null);
