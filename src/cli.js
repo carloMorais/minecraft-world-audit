@@ -142,21 +142,26 @@ function playerLabel(p) {
   return `Jogador ${p.key.replace('player_server_', '')}${p.identity?.msaId ? ` (MSA ${p.identity.msaId})` : ''}`;
 }
 
+function textPlayer(p, o) {
+  o.l(`  ${playerLabel(p)}`);
+  o.kv('Modo de jogo', p.gameMode);
+  o.kv('Permissão', p.permission);
+  o.kv('Dimensão / posição', `${p.dimension} @ ${pos(p.position)}`);
+  if (p.health) o.kv('Vida', `${p.health.current}/${p.health.max}`);
+  o.kv('Fome / saturação', `${p.hunger ?? '?'} / ${p.saturation ?? '?'}`);
+  o.kv('Nível de XP', `${p.xp.level} (+${Math.round((p.xp.progress || 0) * 100)}%)`);
+  if (p.spawnPoint) o.kv('Ponto de renascimento', `${p.spawnPoint.dimension} @ ${p.spawnPoint.x} ${p.spawnPoint.y} ${p.spawnPoint.z}`);
+  o.kv('Já morreu', p.hasDiedBefore ? `sim — última morte em ${p.lastDeath?.dimension} @ ${p.lastDeath?.x} ${p.lastDeath?.y} ${p.lastDeath?.z}` : 'não');
+  o.kv('Viu os créditos (saiu do End)', p.hasSeenCredits ? 'sim' : 'não');
+  if (p.effects.length) o.kv('Efeitos', p.effects.map(e => `${e.name} ${e.amplifier + 1} (${Math.round(e.durationTicks / 20)}s)`).join(', '));
+  o.kv('Receitas desbloqueadas', p.unlockedRecipes.length);
+  if (p.tags.length) o.kv('Tags', p.tags.join(', '));
+}
+
 function textPlayers(players, o) {
+  o.h(`Jogadores (${players.length})`);
   for (const p of players) {
-    o.h(playerLabel(p));
-    o.kv('Modo de jogo', p.gameMode);
-    o.kv('Permissão', p.permission);
-    o.kv('Dimensão / posição', `${p.dimension} @ ${pos(p.position)}`);
-    if (p.health) o.kv('Vida', `${p.health.current}/${p.health.max}`);
-    o.kv('Fome / saturação', `${p.hunger ?? '?'} / ${p.saturation ?? '?'}`);
-    o.kv('Nível de XP', `${p.xp.level} (+${Math.round((p.xp.progress || 0) * 100)}%)`);
-    if (p.spawnPoint) o.kv('Ponto de renascimento', `${p.spawnPoint.dimension} @ ${p.spawnPoint.x} ${p.spawnPoint.y} ${p.spawnPoint.z}`);
-    o.kv('Já morreu', p.hasDiedBefore ? `sim — última morte em ${p.lastDeath?.dimension} @ ${p.lastDeath?.x} ${p.lastDeath?.y} ${p.lastDeath?.z}` : 'não');
-    o.kv('Viu os créditos (saiu do End)', p.hasSeenCredits ? 'sim' : 'não');
-    if (p.effects.length) o.kv('Efeitos', p.effects.map(e => `${e.name} ${e.amplifier + 1} (${Math.round(e.durationTicks / 20)}s)`).join(', '));
-    o.kv('Receitas desbloqueadas', p.unlockedRecipes.length);
-    if (p.tags.length) o.kv('Tags', p.tags.join(', '));
+    textPlayer(p, o);
   }
 }
 
