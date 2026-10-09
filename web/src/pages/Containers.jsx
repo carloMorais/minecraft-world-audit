@@ -18,6 +18,7 @@ function ContainerCard({ b, tip, go }) {
         <Archive size={16} />
         <strong>{b.customName ? <McText text={b.customName} /> : LABEL[b.id] || b.id}</strong>
         {b.customName && <Badge>{LABEL[b.id] || b.id}</Badge>}
+        {b.lootTable && <Badge tone="gold">Loot intacto</Badge>}
         <span className="grow" />
         <small>{fmt(total)} itens</small>
       </header>
@@ -47,7 +48,7 @@ export default function Containers({ go }) {
           const matches = it => re.test(it.item) || re.test(prettyName(it.item)) || (it.customName && re.test(it.customName)) || it.contents?.some(matches);
           const list = all
             .filter(b => type === 'all' || b.id === type)
-            .filter(b => !re || [...(b.items || []), b.item, b.record, b.book].filter(Boolean).some(matches) || re.test(b.customName || ''))
+            .filter(b => !re || [...(b.items || []), b.item, b.record, b.book].filter(Boolean).some(matches) || re.test(b.customName || '') || (b.lootTable && re.test('loot')))
             .sort((a, b) => (b.items?.length || 0) - (a.items?.length || 0));
           return (
             <>

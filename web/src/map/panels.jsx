@@ -1,7 +1,7 @@
 // Side-panel content of each map view: the ranking or list that used to be its own page.
 import { useMemo, useState } from 'react';
 import {
-  Layers, Castle, Archive, Store, Waypoints, PawPrint, Gauge, Trees, Search, Info, Loader2, X, BookOpen, ChevronRight,
+  Layers, Castle, Archive, Store, Waypoints, PawPrint, Gauge, Trees, Search, Info, Loader2, X, BookOpen, ChevronRight, MapPin,
 } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { BarList, Tabs } from '../components/ui.jsx';
@@ -329,6 +329,27 @@ function BiomesPanel({ biomes, hoverBiome, biome, setBiome }) {
 const ITEM_QUICK = ['diamond', 'netherite', 'elytra', 'totem', 'shulker_box', 'enchanted_book', 'beacon|nether_star'];
 const BLOCK_QUICK = ['diamond_ore', 'ancient_debris', 'spawner|mob_spawner', 'beacon', 'end_portal_frame', 'enchanting_table', 'bed'];
 
+function GraveyardPanel({ markers, dim, jump, select, selected }) {
+  const deaths = markers.filter(m => m.layer === 'deaths');
+
+  if (!deaths.length) return <p className="muted small">Nenhuma morte registrada nesta dimensão.</p>;
+
+  return (
+    <>
+      <h4>Locais de morte <span className="muted">{fmt(deaths.length)}</span></h4>
+      <List rows={deaths.map(m => ({
+        key: m.key,
+        icon: <MapPin size={20} />,
+        title: m.label,
+        sub: m.detail,
+        right: `${Math.round(m.x)}, ${Math.round(m.z)}`,
+        active: m === selected,
+        onClick: () => select(m)
+      }))} />
+    </>
+  );
+}
+
 function SearchPanel({ search, setSearch, searchState, hits, dim, jump, select, selected, markers }) {
   const [text, setText] = useState(search.q);
   const run = q => setSearch({ ...search, q: q.trim() });
@@ -374,6 +395,7 @@ function SearchPanel({ search, setSearch, searchState, hits, dim, jump, select, 
 /** Ready-made combinations of layers + overlay + side panel. */
 export const VIEWS = [
   { id: 'all', label: 'Tudo', icon: Layers, layers: ['players', 'spawns', 'deaths', 'world', 'portals', 'villages', 'pets', 'containers'], Panel: AllPanel },
+  { id: 'graveyard', label: 'Cemitério', icon: MapPin, layers: ['deaths', 'players'], Panel: GraveyardPanel },
   { id: 'bases', label: 'Bases', icon: Castle, layers: ['bases', 'players', 'spawns'], overlay: 'build', Panel: BasesPanel },
   { id: 'containers', label: 'Baús', icon: Archive, layers: ['containers'], Panel: ContainersPanel },
   { id: 'villagers', label: 'Vilas e aldeões', icon: Store, layers: ['villages', 'villagers'], Panel: VillagersPanel },

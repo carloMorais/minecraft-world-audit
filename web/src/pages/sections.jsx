@@ -1,5 +1,5 @@
 // Pages made of tabs. Each tab is a former page body; the map views replaced the pages that showed places.
-import { Search, Archive, PackageOpen, BookOpen, Map as MapIcon, Users, Coins, Shield, Boxes, Pickaxe, Trophy, Terminal, Gavel, ScrollText } from 'lucide-react';
+import { Search, Archive, PackageOpen, BookOpen, Map as MapIcon, Users, Coins, Shield, Boxes, Pickaxe, Trophy, Terminal, Gavel, ScrollText, PawPrint } from 'lucide-react';
 import TabbedPage from '../components/TabbedPage.jsx';
 import Items from './Items.jsx';
 import Containers from './Containers.jsx';
@@ -11,6 +11,7 @@ import Gear from './Gear.jsx';
 import Blocks from './Blocks.jsx';
 import Mining from './Mining.jsx';
 import Collections from './Collections.jsx';
+import Animals from './Animals.jsx';
 import Advanced from './Advanced.jsx';
 import { PaperMaps, WorldRecords, WorldConfig } from './WorldData.jsx';
 
@@ -32,6 +33,7 @@ const TERRAIN_TABS = [
 ];
 const PROGRESS_TABS = [
   { id: 'collections', label: 'Coleções', icon: Trophy, el: Collections, subtitle: 'Conquistas e checklists do que o mundo já tem: discos, moldes, fragmentos, cabeças, cores, mobs domados e biomas visitados.' },
+  { id: 'animals', label: 'Zoológico e Pets', icon: PawPrint, el: Animals, subtitle: 'Animais domados, cavalos e mobs com nome' },
 ];
 const ADVANCED_TABS = [
   { id: 'raw', label: 'Dados brutos', icon: Terminal, el: Advanced, subtitle: 'Exportação em JSON, índice do banco de dados e leitura direta de qualquer registro NBT.' },
