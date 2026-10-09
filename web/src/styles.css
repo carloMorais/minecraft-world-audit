@@ -694,9 +694,11 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 /* ---------- overview: progressive hero, treasures ---------- */
 .hero-skeleton { min-height: 210px; background: linear-gradient(100deg, rgba(255, 255, 255, 0.03) 30%, rgba(255, 255, 255, 0.07) 50%, rgba(255, 255, 255, 0.03) 70%) 0 0 / 300% 100%, var(--panel); animation: shimmer 1.4s linear infinite; }
 @keyframes shimmer { to { background-position: -150% 0, 0 0; } }
-.treasures { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.treasures { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x mandatory; }
+.treasures::-webkit-scrollbar { height: 6px; }
+.treasures::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
 .treasure {
-  display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 9px; border-radius: 11px; text-align: left; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 9px; border-radius: 11px; text-align: left; cursor: pointer; flex: none; width: 180px; scroll-snap-align: start;
   background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); transition: border-color 0.15s, background 0.15s;
 }
 .treasure:hover { border-color: rgba(95, 208, 104, 0.4); background: rgba(95, 208, 104, 0.06); }
@@ -834,6 +836,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 .coll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
 .coll-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 10px; border: 1px dashed var(--border-strong); background: none; text-align: center; opacity: 0.4; filter: grayscale(1); }
 .coll-tile.have { opacity: 1; filter: none; border-style: solid; border-color: var(--border); background: rgba(255, 255, 255, 0.03); }
+.coll-tile.hidden { display: none; }
 button.coll-tile { cursor: pointer; }
 button.coll-tile:hover { border-color: rgba(95, 208, 104, 0.45); }
 .coll-icon { height: 34px; display: flex; align-items: center; }
@@ -871,6 +874,54 @@ button.coll-tile:hover { border-color: rgba(95, 208, 104, 0.45); }
   border: 1px solid var(--border-strong); background: rgba(255, 255, 255, 0.03); color: var(--muted); font-weight: 600; font-size: 13px;
 }
 .map-views button:hover { color: var(--text); border-color: rgba(95, 208, 104, 0.45); }
+.map-views-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+
+/* Pie Charts & Overviews */
+.pie-chart { position: relative; width: 160px; height: 160px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: conic-gradient(var(--pie-slices)); flex: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.pie-chart-inner { width: 110px; height: 110px; border-radius: 50%; background: var(--panel); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; }
+.pie-chart-inner b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.pie-chart-inner small { color: var(--muted); font-size: 11px; }
+.chart-panel-body { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.chart-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.legend-item .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.legend-item b { font-variant-numeric: tabular-nums; margin-left: auto; color: var(--muted); font-weight: normal; }
+
+/* Collections filters & Complete state */
+.panel-complete { border-color: rgba(255, 216, 74, 0.4); box-shadow: 0 4px 16px -8px rgba(255, 216, 74, 0.3); background: linear-gradient(135deg, rgba(255, 216, 74, 0.05), transparent 40%), var(--panel); }
+.coll-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+.coll-filter-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 500; }
+.coll-filter-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.coll-filter-btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.coll-switch { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; }
+.coll-switch input { appearance: none; width: 32px; height: 18px; background: rgba(255,255,255,0.1); border-radius: 99px; position: relative; cursor: pointer; transition: background 0.2s; }
+.coll-switch input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+.coll-switch input:checked { background: var(--accent); }
+.coll-switch input:checked::after { transform: translateX(14px); }
+
+/* Accordeons no painel do mapa */
+.map-accordion { margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,0.015); overflow: hidden; }
+.map-accordion summary { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; font-weight: 600; font-size: 13px; background: rgba(255,255,255,0.02); user-select: none; }
+.map-accordion summary:hover { background: rgba(255,255,255,0.04); }
+.map-accordion summary::-webkit-details-marker { display: none; }
+.map-accordion[open] summary { border-bottom: 1px solid var(--border); }
+.map-accordion .map-accordion-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Controles flutuantes no mapa */
+.map-floating-dim { position: absolute; top: 12px; left: 12px; z-index: 10; display: flex; background: rgba(8, 10, 14, 0.85); backdrop-filter: blur(4px); padding: 4px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+.map-floating-dim button { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; border: none; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.map-floating-dim button:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.map-floating-dim button.active { background: rgba(255,255,255,0.1); color: var(--text); }
+.map-floating-dim button .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+.map-floating-search { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; background: rgba(8, 10, 14, 0.85); backdrop-filter: blur(4px); padding: 4px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 260px; align-items: center; }
+.map-floating-search input { background: transparent; border: none; padding: 6px 12px; color: var(--text); font-size: 13px; outline: none; flex: 1; }
+.map-floating-search button { background: var(--accent); border: none; color: var(--accent-ink); border-radius: 99px; padding: 4px 12px; font-size: 12px; font-weight: bold; cursor: pointer; }
+
+/* Panel collapsible na overview */
+.panel-collapsible summary { display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 13px; font-weight: 500; padding: 8px 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; list-style: none; user-select: none; }
+.panel-collapsible summary::-webkit-details-marker { display: none; }
+.panel-collapsible[open] summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: 12px; }
 .map-views button.active { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 .map-views button.active svg { color: var(--accent-ink); }
 .map-layout.wide { grid-template-columns: minmax(0, 1fr) 460px; }
