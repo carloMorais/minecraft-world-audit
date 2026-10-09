@@ -14,6 +14,12 @@ const STEPS = [
 
 const ACCEPTED = /\.(mcworld|zip)$/i;
 
+/** Faint blocks drifting up behind the landing: left %, size, colour, duration and phase. */
+const CUBES = [
+  [6, 18, '#5fd068', 26, 0], [14, 10, '#8b5a2b', 34, -12], [23, 14, '#4fb2d8', 30, -20], [33, 8, '#9aa3ad', 38, -6],
+  [68, 12, '#f2c14e', 32, -16], [77, 20, '#5fd068', 28, -4], [86, 9, '#a78bfa', 36, -24], [94, 14, '#8b5a2b', 30, -10],
+].map(([x, s, c, d, delay]) => ({ left: `${x}%`, '--s': `${s}px`, '--c': c, animationDuration: `${d}s`, animationDelay: `${delay}s` }));
+
 /** Turns a <input webkitdirectory> FileList into the worker's { files, name } input. */
 export function dirInput(list) {
   const files = [...(list || [])];
@@ -78,6 +84,7 @@ export default function Landing({ onOpen, busy, error }) {
   return (
     <div className={`landing${drag ? ' dragging' : ''}`}>
       <div className="landing-bg" aria-hidden="true" />
+      <div className="landing-cubes" aria-hidden="true">{CUBES.map((c, i) => <span key={i} style={c} />)}</div>
       <div className="landing-inner">
         <div className="brand-big">
           <span className="brand-block" />

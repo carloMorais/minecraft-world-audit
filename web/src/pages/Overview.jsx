@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '../client.js';
-import { Panel, StatCard, BarList, Async, Badge } from '../components/ui.jsx';
+import { Panel, StatCard, BarList, Async, Badge, CountUp } from '../components/ui.jsx';
 import { MobIcon, ItemIcon } from '../components/icons.jsx';
 import { TREASURES, treasureCount } from '../treasures.js';
 import { fmt, fmtCompact, mobName, DIM_LABEL, DIM_COLOR, GAMEMODE_LABEL, DIFFICULTY_LABEL, timeAgo, pos, sortDims, playerNames, isHost, blockEntityLabel } from '../format.js';
@@ -79,7 +79,7 @@ function Treasures({ totals, go }) {
             <button type="button" key={t.key} className={`treasure${n ? '' : ' none'}`} onClick={() => go('items', { q: t.q })} title={`Onde estão: ${t.label}`}>
               <ItemIcon id={t.icon} size={34} enchanted={t.key === 'books'} />
               <div>
-                <strong>{fmt(n)}</strong>
+                <strong><CountUp value={fmt(n)} /></strong>
                 <small>{t.label}{t.hint ? ` (${t.hint})` : ''}</small>
               </div>
             </button>

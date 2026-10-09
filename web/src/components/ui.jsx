@@ -1,7 +1,69 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Search, Loader2, AlertTriangle, Inbox, ChevronRight, MapPin, X, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { fmt, fmtCompact, pos, MAP_DIMS } from '../format.js';
 import { useHashParam } from '../route.js';
+
+const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NUMBER = /d{1,3}(?:.d{3})+(?:,d+)?|d+(?:,d+)?/;
+
+/**
+ * A formatted value ("7.204", "12,8 mil", "3/12") whose first number counts up from zero when it
+ * mounts. It writes the text node directly, so React keeps owning the final text.
+ */
+export function CountUp({ value, ms = 900 }) {
+  const ref = useRef();
+  const text = String(value ?? '');
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const m = NUMBER.exec(text);
+    if (!el || !m || reducedMotion()) return undefined;
+    const dec = m[0].split(',')[1]?.length || 0;
+    const target = parseFloat(m[0].replace(/./g, '').replace(',', '.'));
+    if (!(target > 0)) return undefined;
+    const opts = { minimumFractionDigits: dec, maximumFractionDigits: dec, useGrouping: m[0].includes('.') };
+    const head = text.slice(0, m.index), tail = text.slice(m.index + m[0].length);
+    const start = performance.now();
+    let raf;
+    const step = now => {
+      const t = Math.min(1, (now - start) / ms);
+      el.textContent = t < 1 ? head + (target * (1 - (1 - t) ** 4)).toLocaleString('pt-BR', opts) + tail : text;
+      if (t < 1) raf = requestAnimationFrame(step);
+    };
+    step(start);
+    return () => { cancelAnimationFrame(raf); el.textContent = text; };
+  }, [text, ms]);
+  return <span ref={ref}>{text}</span>;
+}
+
+/**
+ * Sliding indicator for a group of buttons: puts the box of the `selector` element into
+ * --ink-x/y/w/h (and its --tab-c into --ink-c) on the container, whose ::before draws it in CSS.
+ * Re-measures when `dep` changes or the container resizes; transitions start after the first placement.
+ */
+export function useInk(dep, selector = ':scope > .active') {
+  const ref = useRef();
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const place = () => {
+      const a = el.querySelector(selector);
+      el.classList.toggle('has-ink', !!a);
+      if (!a) return;
+      const r = a.getBoundingClientRect(), c = el.getBoundingClientRect();
+      el.style.setProperty('--ink-x', `${r.left - c.left + el.scrollLeft}px`);
+      el.style.setProperty('--ink-y', `${r.top - c.top + el.scrollTop}px`);
+      el.style.setProperty('--ink-w', `${r.width}px`);
+      el.style.setProperty('--ink-h', `${r.height}px`);
+      el.style.setProperty('--ink-c', a.style.getPropertyValue('--tab-c') || 'var(--accent)');
+    };
+    place();
+    const raf = requestAnimationFrame(() => el.classList.add('ink-ready'));
+    const ro = new ResizeObserver(place);
+    ro.observe(el);
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); };
+  }, [dep, selector]);
+  return ref;
+}
 
 export function Panel({ title, icon: Icon, actions, children, className = '', pad = true }) {
   return (
@@ -25,7 +87,7 @@ export function StatCard({ icon: Icon, label, value, sub, tone = 'green', onClic
       <div className="stat-icon">{Icon && <Icon size={20} />}</div>
       <div className="stat-text">
         <span className="stat-label">{label}</span>
-        <strong className="stat-value">{value}</strong>
+        <strong className="stat-value">{value != null && typeof value === 'object' ? value : <CountUp value={value} />}</strong>
         {sub && <span className="stat-sub">{sub}</span>}
       </div>
       {onClick && <ChevronRight size={16} className="stat-go" aria-hidden="true" />}
@@ -129,8 +191,9 @@ export function BarList({ rows, max, limit = 12, format = fmtCompact, onSelect, 
 }
 
 export function Tabs({ value, onChange, items, label }) {
+  const ref = useInk(`${value}|${items.map(it => `${it.value}:${it.count ?? ''}`).join()}`);
   return (
-    <div className="tabs" role="tablist" aria-label={label}>
+    <div ref={ref} className="tabs ink" role="tablist" aria-label={label}>
       {items.map(it => (
         <button type="button" role="tab" key={it.value} aria-selected={value === it.value} className={value === it.value ? 'active' : ''} onClick={() => onChange(it.value)} style={it.color ? { '--tab-c': it.color } : undefined}>
           {it.color && !it.icon && <span className="dot" style={{ background: it.color }} />}
@@ -183,11 +246,11 @@ export function Async({ state, children, loadingText, loadingSub }) {
   return children(state.data);
 }
 
-export function PageHeader({ title, subtitle, actions }) {
+export function PageHeader({ icon: Icon, title, subtitle, actions }) {
   return (
     <div className="page-header">
       <div>
-        <h1>{title}</h1>
+        <h1>{Icon && <span className="page-icon" aria-hidden="true"><Icon size={20} /></span>}{title}</h1>
         {subtitle && <p>{subtitle}</p>}
       </div>
       {actions && <div className="page-actions">{actions}</div>}

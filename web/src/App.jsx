@@ -6,7 +6,7 @@ import { openWorld, call } from './client.js';
 import { parseHash, hashFor } from './route.js';
 import Landing, { dirInput } from './pages/Landing.jsx';
 import ReloadGuard from './components/ReloadGuard.jsx';
-import { Modal } from './components/ui.jsx';
+import { Modal, useInk } from './components/ui.jsx';
 import Overview from './pages/Overview.jsx';
 import MapPage from './pages/MapPage.jsx';
 import Compare from './pages/Compare.jsx';
@@ -101,6 +101,7 @@ export default function App() {
   const [switching, setSwitching] = useState(false); // true, or the File dropped on the page
   const fileRef = useRef();
   const dirRef = useRef();
+  const navInk = useInk(`${page}|${!!world && !busy}`, 'a.active');
 
   const current = PAGES.find(p => p.id === page) || PAGES[0];
 
@@ -168,7 +169,7 @@ export default function App() {
           <button type="button" className="icon-x drawer-close" onClick={() => setDrawer(false)} aria-label="Fechar menu"><X size={14} /></button>
         </div>
         <QuickFind go={go} />
-        <nav>
+        <nav ref={navInk} className="ink">
           {GROUPS.map(g => (
             <div key={g} className="nav-group">
               <span className="nav-label">{g}</span>

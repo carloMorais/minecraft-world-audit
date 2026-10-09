@@ -1,5 +1,5 @@
 // Pages made of tabs. Each tab is a former page body; the map views replaced the pages that showed places.
-import { Search, Archive, PackageOpen, BookOpen, Map as MapIcon, Users, Coins, Shield, Boxes, Pickaxe, Trophy, Terminal, Gavel, ScrollText } from 'lucide-react';
+import { Backpack, Mountain, Search, Archive, PackageOpen, BookOpen, Map as MapIcon, Users, Coins, Shield, Boxes, Pickaxe, Trophy, Terminal, Gavel, ScrollText } from 'lucide-react';
 import TabbedPage from '../components/TabbedPage.jsx';
 import Items from './Items.jsx';
 import Containers from './Containers.jsx';
@@ -39,8 +39,8 @@ const ADVANCED_TABS = [
   { id: 'records', label: 'Registros', icon: ScrollText, el: WorldRecords, subtitle: 'Registros globais: scoreboard (estatísticas de add-ons), estruturas salvas, eventos e o Ender Dragon.' },
 ];
 
-export const ItemsPage = props => <TabbedPage page="items" title="Itens" tabs={ITEM_TABS} {...props} />;
-export const PlayersPage = props => <TabbedPage page="players" title="Jogadores" tabs={PLAYER_TABS} {...props} />;
-export const TerrainPage = props => <TabbedPage page="terrain" title="Terreno" tabs={TERRAIN_TABS} {...props} />;
-export const ProgressPage = props => <TabbedPage page="progress" title="Progresso" tabs={PROGRESS_TABS} {...props} />;
-export const AdvancedPage = props => <TabbedPage page="advanced" title="Avançado" tabs={ADVANCED_TABS} {...props} />;
+export const ItemsPage = props => <TabbedPage page="items" title="Itens" pageIcon={Backpack} tabs={ITEM_TABS} {...props} />;
+export const PlayersPage = props => <TabbedPage page="players" title="Jogadores" pageIcon={Users} tabs={PLAYER_TABS} {...props} />;
+export const TerrainPage = props => <TabbedPage page="terrain" title="Terreno" pageIcon={Mountain} tabs={TERRAIN_TABS} {...props} />;
+export const ProgressPage = props => <TabbedPage page="progress" title="Progresso" pageIcon={Trophy} tabs={PROGRESS_TABS} {...props} />;
+export const AdvancedPage = props => <TabbedPage page="advanced" title="Avançado" pageIcon={Terminal} tabs={ADVANCED_TABS} {...props} />;

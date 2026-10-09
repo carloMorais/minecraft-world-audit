@@ -189,6 +189,7 @@ export default function Compare({ world, go }) {
   return (
     <div className="page">
       <PageHeader
+        icon={GitCompare}
         title="Comparar saves"
         subtitle="Abra outro save do mesmo mundo (um backup antigo, por exemplo) e veja o que mudou: exploração, itens, mobs e baús."
         actions={state.phase === 'ready' && <button type="button" className="btn" onClick={close}><X size={15} /> Fechar comparação</button>}

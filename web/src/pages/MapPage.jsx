@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { ZoomIn, ZoomOut, Maximize, LocateFixed, Download, Crosshair, X, Ruler, Navigation, Loader2, PanelRightOpen, PanelRightClose, Layers } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, LocateFixed, Download, Crosshair, X, Ruler, Navigation, Loader2, PanelRightOpen, PanelRightClose, Layers, Map as MapIcon } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { useHashParam, replaceParams } from '../route.js';
-import { Tabs, Loading, ErrorBox, PageHeader } from '../components/ui.jsx';
+import { Tabs, Loading, ErrorBox, PageHeader, useInk } from '../components/ui.jsx';
 import { fmt, DIM_LABEL, DIM_COLOR, sortDims, playerNames } from '../format.js';
 import { biomeColor, biomeLabel } from '../domain.js';
 import { LAYERS, LAYER, LAYER_GROUPS, DEFAULT_CFILTER, DEFAULT_MFILTER, useMarkers } from '../map/layers.js';
@@ -483,16 +483,19 @@ export default function MapPage({ nav, go }) {
   const hoverBiome = hover ? biomeAt(hover.x, hover.z) : null;
   const card = selected || hover?.marker;
   const Panel = view.Panel;
+  const viewsInk = useInk(view.id);
+  const sideInk = useInk(`${sideTab}|${view.id}`);
   const overlayLoading = (heatMode && heatData.loading) || (overlay === 'biomes' && biomeData.loading);
 
   return (
     <div className="page page-map">
       <PageHeader
+        icon={MapIcon}
         title="Mapa do mundo"
         subtitle="Vista aérea gerada a partir dos blocos salvos. Escolha uma visão ou combine camadas; clique num marcador para ver os detalhes."
         actions={<Tabs label="Dimensão" value={dim} onChange={setDim} items={dims.map(d => ({ value: d, label: DIM_LABEL[d], color: DIM_COLOR[d] }))} />}
       />
-      <div className="map-views" role="tablist" aria-label="Visão do mapa">
+      <div ref={viewsInk} className="map-views ink" role="tablist" aria-label="Visão do mapa">
         {VIEWS.map(v => (
           <button type="button" role="tab" key={v.id} aria-selected={v.id === view.id} className={v.id === view.id ? 'active' : ''} onClick={() => setView(v.id)}>
             <v.icon size={15} /> {v.label}
@@ -545,7 +548,7 @@ export default function MapPage({ nav, go }) {
           </div>
         </div>
         <aside className="map-side">
-          <div className="side-tabs" role="tablist" aria-label="Painel do mapa">
+          <div ref={sideInk} className="side-tabs ink" role="tablist" aria-label="Painel do mapa">
             <button type="button" role="tab" aria-selected={sideTab === 'view'} className={sideTab === 'view' ? 'active' : ''} onClick={() => setSideTab('view')}><view.icon size={14} /> {view.label}</button>
             <button type="button" role="tab" aria-selected={sideTab === 'layers'} className={sideTab === 'layers' ? 'active' : ''} onClick={() => setSideTab('layers')}><Layers size={14} /> Camadas</button>
           </div>
