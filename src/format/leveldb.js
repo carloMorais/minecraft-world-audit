@@ -102,9 +102,8 @@ function* tableRecords(file) {
   if (file.length < 48) return;
   const footer = file.subarray(file.length - 48);
   let p = 0;
-  let metaHandle, indexHandle;
-  [metaHandle, p] = readBlockHandle(footer, p); // eslint-disable-line no-unused-vars
-  [indexHandle, p] = readBlockHandle(footer, p);
+  [, p] = readBlockHandle(footer, p); // metaindex handle, unused
+  const [indexHandle] = readBlockHandle(footer, p);
   const index = readTableBlock(file, indexHandle);
   for (const [, handleBuf] of blockEntries(index)) {
     const [handle] = readBlockHandle(handleBuf, 0);

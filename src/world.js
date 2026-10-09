@@ -87,10 +87,10 @@ class World {
     const t = this.readText(name);
     if (t == null) return null;
     try {
-      return JSON.parse(t.replace(/^﻿/, ''));
+      return JSON.parse(t.replace(/^\uFEFF/, ''));
     } catch {
       try {
-        const cleaned = t.replace(/^﻿/, '').replace(/\/\*[\s\S]*?\*\//g, '')
+        const cleaned = t.replace(/^\uFEFF/, '').replace(/\/\*[\s\S]*?\*\//g, '')
           .replace(/^\s*\/\/.*$/gm, '').replace(/,(\s*[}\]])/g, '$1');
         return JSON.parse(cleaned);
       } catch { return null; }

@@ -1,3 +1,5 @@
+import { ptName, ptMobName } from './names.js';
+
 export const fmt = n => (n == null || Number.isNaN(n) ? '—' : Number(n).toLocaleString('pt-BR'));
 
 export const fmtCompact = n => {
@@ -9,15 +11,20 @@ export const fmtCompact = n => {
   return fmt(n);
 };
 
-/** "minecraft:diamond_sword" -> "Diamond Sword"; keeps the namespace for add-ons ("spark_pets: Shiba Inu"). */
-export function prettyName(id) {
+/** "minecraft:diamond_sword" -> "Espada de diamante" (English title case when there is no translation);
+ * keeps the namespace for add-ons ("Shiba Inu · spark_pets"). */
+export function prettyName(id, translate = ptName) {
   if (!id) return '';
   const [ns, name] = id.includes(':') ? id.split(':') : ['minecraft', id];
+  if (ns === 'minecraft') { const pt = translate(name); if (pt) return pt; }
   const words = name.replace(/[[\]]/g, ' ').split(/[_.\s]+/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1));
   return ns === 'minecraft' ? words.join(' ') : `${words.join(' ')} · ${ns}`;
 }
 
-export const shortName = id => (id || '').replace(/^minecraft:/, '');
+/** Like prettyName, for entity types ("minecraft:chicken" is a Galinha, not raw chicken). */
+export const mobName = id => prettyName(id, ptMobName);
+
+export const shortName =id => (id || '').replace(/^minecraft:/, '');
 
 export const pos = p => (p ? p.map(n => Math.round(n)).join(', ') : '—');
 
@@ -84,3 +91,14 @@ export function downloadJson(name, data) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
+
+/** The host player record (or null). */
+export const hostOf = players => (players || []).find(isHost) || null;
+
+/** Horizontal distance in blocks from `from` ({dimension, position}) to a point, or null across dimensions. */
+export function distance(from, dim, position) {
+  if (!from?.position || !position || from.dimension !== dim) return null;
+  return Math.round(Math.hypot(position[0] - from.position[0], position[2] - from.position[2]));
+}
+
+export const fmtDistance = d => (d == null ? '—' : d >= 10000 ? `${fmtCompact(d)} blocos` : `${fmt(d)} blocos`);

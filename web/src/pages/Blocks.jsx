@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Boxes, Hammer, Droplets, Search, Info } from 'lucide-react';
 import { useQuery } from '../client.js';
+import { useHashParam } from '../route.js';
 import { Panel, Async, PageHeader, BarList, Tabs, SearchInput, Empty, StatCard, CoordLink } from '../components/ui.jsx';
 import { blockColor } from '../../../src/extract/surface.js';
 import { fmt, fmtCompact, prettyName, DIM_LABEL, DIM_COLOR, sortDims } from '../format.js';
@@ -10,9 +11,9 @@ const rowsOf = obj => Object.entries(obj || {}).filter(([k]) => !/:(air|cave_air
 const QUICK = ['diamond_ore', 'ancient_debris', 'beacon', 'spawner|mob_spawner', 'end_portal_frame', 'enchanting_table', 'bed', 'chest'];
 
 function FindBlock({ dims, go }) {
-  const [q, setQ] = useState('');
-  const [query, setQuery] = useState(null);
-  const [dim, setDim] = useState('all');
+  const [query, setQuery] = useHashParam('fq', '');
+  const [q, setQ] = useState(query);
+  const [dim, setDim] = useHashParam('fdim', 'all');
   const args = query ? { q: query, dim: dim === 'all' ? undefined : dim, limit: 1000 } : null;
   const result = useQuery('findBlock', args, { enabled: !!query });
   return (
@@ -55,7 +56,7 @@ function FindBlock({ dims, go }) {
 
 export default function Blocks({ go }) {
   const state = useQuery('blocks');
-  const [dim, setDim] = useState(null);
+  const [dim, setDim] = useHashParam('dim', '');
   return (
     <div className="page">
       <PageHeader title="Blocos" subtitle="Contagem de cada bloco salvo no mundo, por dimensão, e busca de coordenadas." />

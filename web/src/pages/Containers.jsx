@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Archive } from 'lucide-react';
 import { useQuery } from '../client.js';
+import { useHashParam } from '../route.js';
 import { Async, PageHeader, Tabs, SearchInput, Empty, Badge, CoordLink } from '../components/ui.jsx';
 import { SlotGrid, Slot, TooltipScope } from '../components/inventory.jsx';
 import { fmt, prettyName, DIM_LABEL, DIM_COLOR } from '../format.js';
@@ -33,8 +34,8 @@ function ContainerCard({ b, tip, go }) {
 
 export default function Containers({ go }) {
   const state = useQuery('containers');
-  const [type, setType] = useState('all');
-  const [q, setQ] = useState('');
+  const [type, setType] = useHashParam('type', 'all');
+  const [q, setQ] = useHashParam('q', '');
   const [limit, setLimit] = useState(60);
   return (
     <div className="page">

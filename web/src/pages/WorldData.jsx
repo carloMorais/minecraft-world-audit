@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Home, Map as MapIcon, DoorOpen, Trophy, Building2, Settings2, Lock } from 'lucide-react';
 import { useQuery, call } from '../client.js';
+import { useHashParam } from '../route.js';
 import { Panel, Async, PageHeader, Tabs, Empty, Badge, CoordLink } from '../components/ui.jsx';
 import { fmt, DIM_LABEL, DIM_COLOR, prettyName } from '../format.js';
 
@@ -49,9 +50,9 @@ function Maps({ maps }) {
 
 const POI = { villager: 'Camas', undefined: 'Sinos/encontro', farmer: 'Composteira', librarian: 'Atril', armorer: 'Alto-forno', weaponsmith: 'Rebolo', toolsmith: 'Mesa de ferraria', fletcher: 'Mesa de arco', cartographer: 'Mesa de cartografia', cleric: 'Suporte de poções', fisherman: 'Barril', shepherd: 'Tear', butcher: 'Defumador', leatherworker: 'Caldeirão', mason: 'Cortador de pedras' };
 
-export default function WorldData({ nav, go }) {
+export default function WorldData({ go }) {
   const state = useQuery('misc');
-  const [tab, setTab] = useState(nav?.tab || 'villages');
+  const [tab, setTab] = useHashParam('tab', 'villages');
   return (
     <div className="page">
       <PageHeader title="Vilas, mapas e mais" subtitle="Registros globais do mundo: vilas, mapas de papel, portais, scoreboard (estatísticas de add-ons), estruturas e eventos." />

@@ -10,8 +10,6 @@ const STEPS = [
   ['level', 'Lendo level.dat'],
   ['db', 'Indexando o banco LevelDB'],
   ['players', 'Decodificando jogadores'],
-  ['entities', 'Carregando entidades'],
-  ['blockEntities', 'Carregando baús e blocos especiais'],
 ];
 
 const ACCEPTED = /\.(mcworld|zip)$/i;
@@ -167,6 +165,38 @@ export default function Landing({ onOpen, busy, error }) {
           <div><Cpu size={20} /><strong>Sem instalação</strong><span>Leitor próprio de LevelDB e NBT rodando num Web Worker.</span></div>
         </div>
       </div>
+      {!busy && (
+        <section className="faq" aria-labelledby="faq-title">
+          <h2 id="faq-title">Como funciona</h2>
+          <div className="faq-steps">
+            <div><span>1</span><strong>Exporte o mundo</strong><p>No Minecraft Bedrock, exporte o mundo como <code>.mcworld</code> ou escolha a pasta dele.</p></div>
+            <div><span>2</span><strong>Abra aqui</strong><p>O arquivo é lido por este site dentro do seu navegador, como um programa instalado.</p></div>
+            <div><span>3</span><strong>Explore</strong><p>Mapa, jogadores, baús, itens, mobs, vilas e biomas, com busca e links entre tudo.</p></div>
+          </div>
+          <div className="faq-list">
+            <details>
+              <summary>Meu mundo é enviado para algum servidor?</summary>
+              <p>Não. O site só entrega o programa; a leitura do arquivo acontece no seu computador ou celular. Nada é enviado e nada fica guardado: ao fechar ou recarregar a página, o mundo some da memória.</p>
+            </details>
+            <details>
+              <summary>Funciona com a Java Edition?</summary>
+              <p>Não. O formato lido aqui é o do Bedrock (Windows, celular, consoles). Mundos da Java Edition usam outro formato.</p>
+            </details>
+            <details>
+              <summary>Posso estragar meu mundo?</summary>
+              <p>Não. O MCX só lê o arquivo, nunca escreve nele. Mesmo assim, feche o mundo no jogo antes de exportar para que tudo esteja salvo.</p>
+            </details>
+            <details>
+              <summary>Por que não aparecem mobs mortos ou blocos minerados?</summary>
+              <p>O Bedrock não guarda essas estatísticas dentro do mundo; elas ficam na conta. Só aparecem quando um add-on as registra no scoreboard, e nesse caso estão em “Vilas, mapas e mais”.</p>
+            </details>
+            <details>
+              <summary>Funciona no celular?</summary>
+              <p>Sim, inclusive o mapa com toque e pinça. Mundos muito grandes podem demorar mais para abrir em aparelhos com pouca memória.</p>
+            </details>
+          </div>
+        </section>
+      )}
       {drag && <div className="drop-overlay" aria-hidden="true"><UploadCloud size={56} /><strong>Solte o arquivo .mcworld</strong></div>}
     </div>
   );

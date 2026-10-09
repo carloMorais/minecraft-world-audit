@@ -64,7 +64,7 @@ class ZipArchive {
           let q = e + 4;
           if (size === 0xffffffff) { size = Number(cd.readBigUInt64LE(q)); q += 8; }
           if (compSize === 0xffffffff) { compSize = Number(cd.readBigUInt64LE(q)); q += 8; }
-          if (localOffset === 0xffffffff) { localOffset = Number(cd.readBigUInt64LE(q)); q += 8; }
+          if (localOffset === 0xffffffff) localOffset = Number(cd.readBigUInt64LE(q));
         }
         e += 4 + len;
       }

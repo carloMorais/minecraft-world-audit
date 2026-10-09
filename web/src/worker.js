@@ -49,10 +49,6 @@ async function open({ file, files }) {
   const db = world.db;
   progress('players', `${db.size.toLocaleString('pt-BR')} chaves`);
   players();
-  progress('entities');
-  entities();
-  progress('blockEntities');
-  blockEntities();
   progress('done');
   return { name: L.name, file: file?.name };
 }
@@ -63,7 +59,7 @@ const methods = {
     const P = players(), M = misc();
     return {
       level: level(),
-      coverage: chunkCoverage(world),
+      coverage: methods.coverage(),
       players: P.map(p => ({ key: p.key, role: p.role, identity: p.identity, gameMode: p.gameMode, dimension: p.dimension, position: p.position, xp: p.xp, health: p.health, hasDiedBefore: p.hasDiedBefore, itemCount: Object.values(p.itemTotals).reduce((a, b) => a + b, 0) })),
       entities: summarizeEntities(entities(), P),
       blockEntities: summarizeBlockEntities(blockEntities()),
@@ -71,6 +67,8 @@ const methods = {
       counts: { portals: M.portals.length, villages: M.villages.length, maps: M.maps.length, structures: M.structureTemplates.length, objectives: M.scoreboard?.objectives.length ?? 0 },
     };
   }),
+  level: () => level(),
+  coverage: () => memo('coverage', () => chunkCoverage(world)),
   players: () => players(),
   entities: () => entities(),
   containers: () => blockEntities().filter(b => b.items?.length || b.item || b.record || b.book),

@@ -1,49 +1,33 @@
-// Item and mob "icons": no game textures are shipped, so each item gets a material colour plus a
-// shape icon (sword, pickaxe, food…). Block items reuse the map palette from src/extract/surface.js.
+// Item and mob icons. No game textures are shipped: items are 16×16 pixel sprites drawn in
+// sprites.js and tinted by material; block items are a cube in the map palette from
+// src/extract/surface.js. Mobs use a lucide shape on a coloured disc.
 import {
-  Sword, Pickaxe, Axe, Shovel, Shield, HardHat, Shirt, Footprints, Apple, Beef, Fish, FlaskConical, BookOpen,
-  Gem, Flame, Feather, Map as MapIcon, Compass, Clock, Key, Package, Bone, Egg, Carrot, Cookie, Wheat, Sparkles,
-  Box, Crosshair, Wand2, Coins, Anchor, Music, Rocket, Sprout, Flower2, Cat, Dog, Bird, Rabbit, Skull, Ghost,
-  Bug, Turtle, PawPrint, Users, Squirrel, Snail, Droplet, Zap, Circle, Square, Scroll, Shell, Cherry, Grape, Milk,
-  Candy, Fence, DoorOpen, Lamp, Cable, Hammer, Scissors, Bell, Cake, Leaf, Mountain, TreePine, Waves, Swords,
-  ShoppingBag, Heart,
+  Cat, Dog, Bird, Rabbit, Skull, Ghost, Bug, Turtle, PawPrint, Users, Squirrel, Snail, Droplet, Zap, Fish, Flame,
+  ShoppingBag, Sparkles, Box, Crosshair, Egg,
 } from 'lucide-react';
 import { blockColor } from '../../../src/extract/surface.js';
+import { spriteShape, spriteUrl } from './sprites.js';
 
 const MATERIAL = [
   [/netherite/, '#4b4346'], [/diamond/, '#4fd8d4'], [/emerald/, '#2ecc71'], [/gold|golden/, '#f2c14e'],
   [/iron|chain/, '#cfd6dc'], [/copper/, '#d27d55'], [/lapis/, '#3457c9'], [/redstone/, '#e0352b'],
-  [/amethyst/, '#a26be0'], [/quartz/, '#ece6dc'], [/leather|rabbit_hide/, '#9a5b33'], [/stone|cobble/, '#8d8d8d'],
-  [/wooden|stick|bowl/, '#a87c4a'], [/elytra|phantom/, '#8f8bb0'], [/turtle|scute/, '#4d9a42'],
-  [/enchanted_book/, '#9b6bff'], [/book|paper|map/, '#d9caa0'], [/potion|bottle/, '#e267b4'],
-  [/ender|chorus|shulker|purpur/, '#8f5aa7'], [/blaze|fire|lava|magma/, '#f08a24'], [/slime/, '#7ccf5b'],
-  [/bone|skull/, '#e8e3cf'], [/string|wool|feather/, '#eeeeee'], [/coal|charcoal|ink|wither/, '#3a3a3a'],
-  [/beef|porkchop|mutton|chicken|rabbit|cod|salmon/, '#d8705c'], [/bread|wheat|hay/, '#d9b157'],
-  [/apple|melon|beetroot/, '#d8423a'], [/carrot|pumpkin/, '#f08a24'], [/sugar|snow|glass/, '#dbe7f2'],
-  [/flint|gunpowder/, '#6b6b6b'], [/arrow|bow|crossbow|trident/, '#b49a73'], [/firework/, '#e94e77'],
+  [/amethyst/, '#a26be0'], [/quartz/, '#ece6dc'], [/leather|rabbit_hide|saddle/, '#9a5b33'], [/stone|cobble/, '#8d8d8d'],
+  [/wooden|stick|bowl|bow$|crossbow|fishing_rod/, '#a87c4a'], [/elytra|phantom/, '#8f8bb0'], [/turtle|scute/, '#4d9a42'],
+  [/enchanted_book/, '#9b6bff'], [/book/, '#8a4b2a'], [/paper|map/, '#d9caa0'], [/experience_bottle/, '#9be15d'],
+  [/potion|bottle/, '#e267b4'], [/ender_eye/, '#3f9f7f'], [/ender|chorus|shulker|purpur/, '#8f5aa7'],
+  [/blaze|fire|lava|magma/, '#f08a24'], [/breeze|wind/, '#b7c6f0'], [/slime/, '#7ccf5b'], [/totem/, '#e8c45a'],
+  [/bone|skull/, '#e8e3cf'], [/string|wool|feather|lead/, '#e6e6e6'], [/coal|charcoal|ink|wither/, '#3a3a3a'],
+  [/beef|porkchop|mutton|chicken|rabbit|rotten_flesh/, '#d8705c'], [/cod|salmon/, '#b9a28a'], [/tropical_fish/, '#f08a24'],
+  [/pufferfish/, '#e8c45a'], [/bread|wheat|hay|cookie/, '#d9b157'], [/golden_apple|glistering/, '#f2c14e'],
+  [/apple|melon|beetroot|sweet_berries/, '#d8423a'], [/carrot|pumpkin/, '#f08a24'], [/potato/, '#c9a35a'],
+  [/sugar|snow|glass/, '#dbe7f2'], [/flint|gunpowder/, '#6b6b6b'], [/arrow|trident/, '#b49a73'], [/firework/, '#e94e77'],
+  [/heart_of_the_sea|nautilus|prismarine/, '#3fb0b8'], [/glowstone|glow_/, '#f5d36b'], [/nether_star/, '#f1f3c8'],
+  [/egg/, '#e8e3cf'], [/spawn_egg/, '#c9a27a'], [/wart|nether_brick/, '#8a2a2a'], [/echo/, '#1e5a63'],
+  [/seeds/, '#7fb24a'], [/compass|clock/, '#9aa0a6'], [/bucket|shears|flint_and_steel/, '#cfd6dc'], [/music_disc/, '#3a3a3a'],
 ];
 
-const SHAPE = [
-  [/_sword$/, Sword], [/_pickaxe$/, Pickaxe], [/_axe$/, Axe], [/_shovel$/, Shovel], [/_hoe$/, Wand2],
-  [/shield/, Shield], [/_helmet$|turtle_helmet/, HardHat], [/_chestplate$|_tunic/, Shirt], [/_leggings$|_pants/, Shirt],
-  [/_boots$/, Footprints], [/elytra/, Feather], [/^bow$|crossbow/, Crosshair], [/trident|mace/, Swords],
-  [/arrow/, Crosshair], [/enchanted_book|^book$|writable_book|written_book|knowledge_book/, BookOpen],
-  [/map/, MapIcon], [/compass|recovery_compass/, Compass], [/clock/, Clock], [/key|trial_key/, Key],
-  [/shulker_box|bundle/, Package], [/chest|barrel/, Box], [/bone/, Bone], [/egg$/, Egg], [/carrot/, Carrot],
-  [/cookie|bread/, Cookie], [/wheat|hay/, Wheat], [/beef|porkchop|mutton|chicken|rabbit$|cooked/, Beef],
-  [/cod|salmon|fish|pufferfish/, Fish], [/apple/, Apple], [/berries|cherry/, Cherry], [/melon|grape/, Grape],
-  [/milk|bucket/, Milk], [/cake/, Cake], [/pie|candy|sugar/, Candy], [/potion|bottle|honey/, FlaskConical],
-  [/diamond$|emerald$|amethyst_shard|quartz$|prismarine_crystals|echo_shard/, Gem], [/ingot|nugget|scrap|netherite_upgrade/, Coins],
-  [/blaze|fire_charge|torch|campfire|lantern/, Flame], [/totem/, Heart], [/firework|rocket/, Rocket],
-  [/music_disc|jukebox|note_block|goat_horn/, Music], [/sapling|seeds|sprout|bamboo|kelp|vine/, Sprout],
-  [/flower|tulip|poppy|dandelion|orchid|allium|rose|lilac|peony|daisy|cornflower|lily/, Flower2],
-  [/leaves/, Leaf], [/_log$|_wood$|_planks$|_stem$/, TreePine], [/fence|wall/, Fence], [/door|trapdoor/, DoorOpen],
-  [/lamp|glowstone|sea_lantern|shroomlight|froglight/, Lamp], [/redstone|repeater|comparator|observer|piston|lever|button/, Cable],
-  [/anvil|smithing|grindstone/, Hammer], [/shears/, Scissors], [/bell/, Bell], [/anchor|lodestone/, Anchor],
-  [/shell|nautilus|heart_of_the_sea/, Shell], [/string|lead|name_tag|saddle/, Scroll], [/water|ice/, Waves],
-  [/stone|ore|deepslate|cobble|granite|diorite|andesite|tuff|dirt|sand|gravel|clay|terracotta|bricks?$|block$/, Mountain],
-  [/spawn_egg/, Egg], [/gunpowder|redstone$|glowstone_dust|dust/, Sparkles], [/emerald/, Gem],
-];
+// Names that are clearly placed blocks even when the map palette has no exact colour for them.
+const BLOCKISH = /stone|ore$|deepslate|cobble|granite|diorite|andesite|tuff|dirt|sand|gravel|clay|terracotta|brick|block$|planks|_log$|_wood$|stem$|hyphae|leaves|wool|concrete|glass|slab|stairs|wall$|fence|carpet|ice$|snow$|netherrack|obsidian|basalt|blackstone|prismarine$|purpur|moss|mud|calcite|dripstone|sculk|bookshelf|pumpkin$|melon$|hay|sponge|lamp|scaffolding|rail$|table$|furnace|smoker|anvil|cauldron|beacon|lantern|grass|podzol|mycelium|nylium|froglight|shroomlight|bedrock|debris|crafter|observer|piston|dispenser|dropper|lodestone|vault|spawner|jukebox|note_?block|composter|loom|grindstone|stonecutter|lectern|bell$|campfire|target|tnt$|cactus|bamboo$|kelp_block|coral|sea_lantern|bed$|banner$|candle$|chain$|bars$/;
 
 function hashColor(s) {
   let h = 0;
@@ -51,29 +35,35 @@ function hashColor(s) {
   return `hsl(${h % 360} 35% 52%)`;
 }
 
-export function itemStyle(id) {
+/** Sprite template and colours for an item id. */
+export function itemSprite(id) {
   const name = (id || '').replace(/^[^:]+:/, '');
-  let color = MATERIAL.find(([re]) => re.test(name))?.[1];
-  const Icon = SHAPE.find(([re]) => re.test(name))?.[1] || (id?.startsWith('minecraft:') ? Square : Circle);
-  if (!color) {
-    const c = blockColor(id || '');
-    color = Icon === Square || Icon === Mountain ? `rgb(${c.join(',')})` : hashColor(name);
-  }
-  return { color, Icon };
+  const ruleShape = spriteShape(name, true);
+  const matched = ruleShape !== 'orb' || /compass|clock|pearl|eye|slime_ball|magma_cream|snowball|heart_of_the_sea|fire_charge|clay_ball|experience/.test(name);
+  const isBlock = !matched && BLOCKISH.test(name);
+  const shape = isBlock ? (/_ore$/.test(name) ? 'ore' : 'block') : ruleShape;
+  let color = shape === 'block' || shape === 'ore' ? null : MATERIAL.find(([re]) => re.test(name))?.[1];
+  if (!color) color = isBlock || shape === 'block' || shape === 'ore' || shape === 'box' || shape === 'door' ? `rgb(${blockColor(id || '').join(',')})` : hashColor(name);
+  let accent;
+  if (shape === 'ore') { color = '#8d8d8d'; accent = MATERIAL.find(([re]) => re.test(name.replace(/_ore$|deepslate_/g, '')))?.[1] || '#f0f0f0'; }
+  if (/deepslate_.*_ore/.test(name)) color = '#4d4d55';
+  if (shape === 'book') accent = name.includes('enchanted') ? '#e8d4ff' : '#f2c14e';
+  return { shape, color, accent };
 }
 
 export function ItemIcon({ id, size = 40, enchanted = false }) {
-  const { color, Icon } = itemStyle(id);
+  const { shape, color, accent } = itemSprite(id);
+  const url = spriteUrl(shape, color, accent);
   return (
-    <span className={`item-icon${enchanted ? ' glint' : ''}`} style={{ '--c': color, width: size, height: size }}>
-      <Icon size={size * 0.55} strokeWidth={2.2} />
+    <span className={`item-icon${enchanted ? ' glint' : ''}`} style={{ width: size, height: size, '--sprite': `url("${url}")` }}>
+      <img src={url} alt="" width={size} height={size} draggable={false} />
     </span>
   );
 }
 
 const MOBS = [
   [/villager|trader|witch|illager|pillager|vindicator|evoker/, Users, '#d9a066'],
-  [/zombie|skeleton|stray|husk|drowned|wither|phantom/, Skull, '#7fa36b'], [/creeper/, Zap, '#5fd068'],
+  [/zombie|skeleton|stray|husk|drowned|wither|phantom|bogged/, Skull, '#7fa36b'], [/creeper/, Zap, '#5fd068'],
   [/ghast|vex|allay|ghost/, Ghost, '#e5e5e5'], [/spider|silverfish|endermite|bee|bug/, Bug, '#7a5c45'],
   [/cat|ocelot|siamese|scottish_fold|persian/, Cat, '#f2c14e'], [/wolf|dog|fox|shiba|husky|corgi/, Dog, '#c48a4f'],
   [/parrot|chicken|bird|falcon|eagle/, Bird, '#e2574c'], [/rabbit|guinea_pig|hamster/, Rabbit, '#c9a27a'],

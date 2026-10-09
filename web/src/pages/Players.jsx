@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { Heart, Drumstick, MapPin, Skull, Bed, Sparkles, BookOpen, Tag, Package, Crown } from 'lucide-react';
+import React from 'react';
+import { Heart, Drumstick, MapPin, Skull, Bed, Sparkles, Columns3, Trophy, BookOpen, Tag, Package, Crown } from 'lucide-react';
 import { useQuery } from '../client.js';
-import { Panel, Async, Badge, PageHeader, BarList, Empty, CoordLink } from '../components/ui.jsx';
+import { useHashParam } from '../route.js';
+import { TREASURES, treasureCount } from '../treasures.js';
+import { Panel, Async, Badge, PageHeader, BarList, Empty, CoordLink, useSort } from '../components/ui.jsx';
 import { Slot, SlotGrid, TooltipScope } from '../components/inventory.jsx';
 import { ItemIcon } from '../components/icons.jsx';
 import { fmt, prettyName, DIM_LABEL, GAMEMODE_LABEL, playerNames, isHost } from '../format.js';
@@ -111,28 +113,85 @@ function PlayerView({ p, name, go }) {
   );
 }
 
-export default function Players({ nav, go }) {
+const COMPARE = TREASURES.filter(t => ['diamond', 'netherite', 'emerald', 'gold', 'totem', 'elytra', 'books', 'gapple'].includes(t.key));
+
+/** Side-by-side table of every player; the leader of each column is highlighted. */
+function Compare({ players, names, go, open }) {
+  const rows = players.map(p => {
+    const owned = { ...p.itemTotals };
+    for (const [id, n] of Object.entries(p.enderChestTotals || {})) owned[id] = (owned[id] || 0) + n;
+    const counts = Object.fromEntries(COMPARE.map(t => [t.key, treasureCount(t, owned)]));
+    return { p, name: names.get(p.key), counts, items: Object.values(p.itemTotals).reduce((a, b) => a + b, 0) };
+  });
+  const best = Object.fromEntries(COMPARE.map(t => [t.key, Math.max(0, ...rows.map(r => r.counts[t.key]))]));
+  const getters = { name: r => r.name, level: r => r.p.xp.level, hp: r => r.p.health?.current, items: r => r.items };
+  for (const t of COMPARE) getters[t.key] = r => r.counts[t.key];
+  const [sorted, th] = useSort(rows, getters);
+  return (
+    <Panel title="Comparar jogadores" icon={Columns3} pad={false} actions={<small className="muted"><Trophy size={12} /> = quem tem mais · conta inventário, ender chest e shulkers carregadas</small>}>
+      <div className="table-wrap">
+        <table className="table compare">
+          <thead>
+            <tr>
+              {th('name', 'Jogador')}{th('level', 'Nível', { firstDesc: true, className: 'num' })}{th('hp', 'Vida', { firstDesc: true, className: 'num' })}{th('items', 'Itens', { firstDesc: true, className: 'num' })}
+              {COMPARE.map(t => <React.Fragment key={t.key}>{th(t.key, <span className="th-item" title={t.label}><ItemIcon id={t.icon} size={18} /><span>{t.label}</span></span>, { firstDesc: true, className: 'num' })}</React.Fragment>)}
+              <th>Posição</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(r => (
+              <tr key={r.p.key} className="clickable" onClick={() => open(r.p.key)} title="Ver inventário">
+                <td className="nowrap"><span className="avatar sm" style={{ '--c': isHost(r.p) ? 'var(--accent)' : 'var(--blue)' }}>{isHost(r.p) ? 'H' : r.name.split(' ')[1]}</span> <strong>{r.name}</strong>{r.p.hasDiedBefore && <Skull size={12} className="muted" title="Já morreu" />}</td>
+                <td className="num">{r.p.xp.level}</td>
+                <td className="num">{r.p.health ? Math.round(r.p.health.current) : '—'}</td>
+                <td className="num">{fmt(r.items)}</td>
+                {COMPARE.map(t => {
+                  const n = r.counts[t.key];
+                  const lead = n > 0 && n === best[t.key];
+                  return <td key={t.key} className={`num${lead ? ' lead' : ''}${n ? '' : ' muted'}`}>{lead && <Trophy size={11} />}{n ? fmt(n) : '–'}</td>;
+                })}
+                <td className="nowrap">{DIM_LABEL[r.p.dimension]} <CoordLink go={go} dim={r.p.dimension} position={r.p.position} label={r.name} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
+export default function Players({ go }) {
   const state = useQuery('players');
-  const [sel, setSel] = useState(nav?.key || null);
+  const [sel, setSel] = useHashParam('p', '');
+  const [view, setView] = useHashParam('view', '');
   return (
     <div className="page">
       <PageHeader title="Jogadores" subtitle="Tudo o que o mundo guarda de cada jogador: inventário, armadura, ender chest, vida, XP, spawn e morte." />
       <Async state={state} loadingText="Lendo jogadores…">
         {players => {
           const idx = Math.max(0, players.findIndex(p => p.key === sel));
+          const comparing = view === 'compare' && players.length > 1;
           const p = players[idx];
           const names = playerNames(players);
           return (
             <>
               <div className="player-tabs" role="tablist" aria-label="Jogadores">
                 {players.map((pl, i) => (
-                  <button type="button" role="tab" aria-selected={i === idx} key={pl.key} className={i === idx ? 'active' : ''} onClick={() => setSel(pl.key)}>
+                  <button type="button" role="tab" aria-selected={!comparing && i === idx} key={pl.key} className={!comparing && i === idx ? 'active' : ''} onClick={() => { setSel(pl.key); setView(''); }}>
                     <span className="avatar" style={{ '--c': isHost(pl) ? 'var(--accent)' : 'var(--blue)' }}>{isHost(pl) ? 'H' : names.get(pl.key).split(' ')[1]}</span>
                     <div><strong>{names.get(pl.key)}</strong><small>Nível {pl.xp.level} · {fmt(Object.values(pl.itemTotals).reduce((a, b) => a + b, 0))} itens</small></div>
                   </button>
                 ))}
+                {players.length > 1 && (
+                  <button type="button" role="tab" aria-selected={comparing} className={`compare-tab${comparing ? ' active' : ''}`} onClick={() => setView('compare')}>
+                    <span className="avatar" style={{ '--c': 'var(--gold)' }}><Columns3 size={16} /></span>
+                    <div><strong>Comparar</strong><small>todos lado a lado</small></div>
+                  </button>
+                )}
               </div>
-              {p ? <PlayerView key={p.key} p={p} name={names.get(p.key)} go={go} /> : <Empty text="Nenhum jogador salvo neste mundo" />}
+              {comparing
+                ? <Compare players={players} names={names} go={go} open={key => { setSel(key); setView(''); }} />
+                : p ? <PlayerView key={p.key} p={p} name={names.get(p.key)} go={go} /> : <Empty text="Nenhum jogador salvo neste mundo" />}
             </>
           );
         }}

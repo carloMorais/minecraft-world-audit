@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { Search, Loader2, AlertTriangle, Inbox, ChevronRight, MapPin, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Search, Loader2, AlertTriangle, Inbox, ChevronRight, MapPin, X, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { fmt, fmtCompact, pos, MAP_DIMS } from '../format.js';
+import { useHashParam } from '../route.js';
 
 export function Panel({ title, icon: Icon, actions, children, className = '', pad = true }) {
   return (
@@ -38,13 +39,45 @@ export function CoordLink({ go, dim, position, label, children }) {
   if (!go || !position || !MAP_DIMS.has(dim)) return <code className="coord">{text}</code>;
   const open = e => {
     e.stopPropagation();
-    go('map', { focus: { dim, x: position[0], y: position[1], z: position[2], label } });
+    go('map', { dim, x: Math.floor(position[0]), y: position[1] == null ? null : Math.round(position[1]), z: Math.floor(position[2]), label });
   };
   return (
     <button type="button" className="coord coord-link" onClick={open} title="Ver no mapa">
       <MapPin size={11} aria-hidden="true" />{text}
     </button>
   );
+}
+
+/**
+ * Sortable table rows. `getters` maps a column key to a value getter (null/undefined sort last);
+ * the active sort ("qty" or "-qty" for descending) lives in the URL. Returns [rows, header cell factory].
+ */
+export function useSort(rows, getters, fallback = '') {
+  const [sort, setSort] = useHashParam('sort', fallback);
+  const desc = sort.startsWith('-');
+  const key = sort.replace(/^-/, '');
+  const sorted = useMemo(() => {
+    const get = getters[key];
+    if (!get) return rows;
+    return [...rows].sort((a, b) => {
+      const va = get(a), vb = get(b);
+      if (va == null || vb == null) return va == null ? (vb == null ? 0 : 1) : -1;
+      const r = typeof va === 'string' ? va.localeCompare(vb, 'pt-BR') : va - vb;
+      return desc ? -r : r;
+    });
+  }, [rows, key, desc]); // eslint-disable-line react-hooks/exhaustive-deps
+  const th = (k, label, { firstDesc = false, className = '' } = {}) => {
+    const active = key === k;
+    const next = active ? (desc ? k : `-${k}`) : firstDesc ? `-${k}` : k;
+    return (
+      <th className={className} aria-sort={active ? (desc ? 'descending' : 'ascending') : undefined}>
+        <button type="button" className={`th-sort${active ? ' active' : ''}`} onClick={() => setSort(next)} title="Ordenar">
+          {label}{active ? (desc ? <ArrowDown size={12} /> : <ArrowUp size={12} />) : <ArrowUpDown size={12} className="th-idle" />}
+        </button>
+      </th>
+    );
+  };
+  return [sorted, th];
 }
 
 /** Centered dialog: focuses the [data-autofocus] action, closes on Esc and backdrop click. */

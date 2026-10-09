@@ -4,6 +4,7 @@ import {
   UploadCloud, FolderOpen, Repeat,
 } from 'lucide-react';
 import { openWorld, call } from './client.js';
+import { parseHash, hashFor } from './route.js';
 import Landing, { dirInput } from './pages/Landing.jsx';
 import ReloadGuard from './components/ReloadGuard.jsx';
 import { Modal } from './components/ui.jsx';
@@ -33,15 +34,15 @@ const PAGES = [
 const GROUPS = [...new Set(PAGES.map(p => p.group))];
 const BASE_TITLE = 'MCX — Bedrock World Explorer';
 
-function useHashPage() {
-  const read = () => window.location.hash.replace('#', '') || 'overview';
-  const [page, setPage] = useState(read);
+/** Current page and its params, following hash changes (links, back/forward, go()). */
+function useRoute() {
+  const [route, setRoute] = useState(parseHash);
   useEffect(() => {
-    const f = () => setPage(read());
+    const f = () => setRoute(parseHash());
     window.addEventListener('hashchange', f);
     return () => window.removeEventListener('hashchange', f);
   }, []);
-  return [page, p => { window.location.hash = p; }];
+  return route;
 }
 
 const isTyping = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
@@ -71,8 +72,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [icon, setIcon] = useState(null);
-  const [page, setPage] = useHashPage();
-  const [nav, setNav] = useState({});
+  const { page, params: nav } = useRoute();
   const [drawer, setDrawer] = useState(false);
   const [switching, setSwitching] = useState(false); // true, or the File dropped on the page
   const fileRef = useRef();
@@ -89,7 +89,7 @@ export default function App() {
       if (!hasFiles(e)) return;
       e.preventDefault();
       const f = e.dataTransfer.files?.[0];
-      if (f && /.(mcworld|zip)$/i.test(f.name)) setSwitching(f);
+      if (f && /\.(mcworld|zip)$/i.test(f.name)) setSwitching(f);
     };
     window.addEventListener('dragover', over);
     window.addEventListener('drop', drop);
@@ -108,8 +108,7 @@ export default function App() {
       setWorld({ ...info, label: info.name || input.name || input.file?.name });
       const bytes = await call('icon').catch(() => null);
       setIcon(old => { if (old) URL.revokeObjectURL(old); return bytes ? URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' })) : null; });
-      setNav({});
-      setPage('overview');
+      window.location.hash = 'overview';
     } catch (e) {
       // the worker already dropped the previous world, so there is nothing left to show
       setWorld(null);
@@ -122,7 +121,7 @@ export default function App() {
   if (!world || busy) return <Landing onOpen={open} busy={busy} error={error} />;
 
   const Page = current.el;
-  const go = (id, params) => { setNav(params || {}); setPage(id); setDrawer(false); };
+  const go = (id, params) => { window.location.hash = hashFor(id, params); setDrawer(false); };
 
   return (
     <div className={`shell${drawer ? ' drawer-open' : ''}`}>
@@ -150,7 +149,7 @@ export default function App() {
             <div key={g} className="nav-group">
               <span className="nav-label">{g}</span>
               {PAGES.filter(p => p.group === g).map(p => (
-                <a key={p.id} href={`#${p.id}`} className={p.id === current.id ? 'active' : ''} aria-current={p.id === current.id ? 'page' : undefined} onClick={() => { setNav({}); setDrawer(false); }}>
+                <a key={p.id} href={`#${p.id}`} className={p.id === current.id ? 'active' : ''} aria-current={p.id === current.id ? 'page' : undefined} onClick={() => setDrawer(false)}>
                   <p.icon size={18} /> {p.label}
                 </a>
               ))}

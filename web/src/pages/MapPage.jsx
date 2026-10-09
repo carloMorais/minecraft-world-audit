@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { ZoomIn, ZoomOut, Maximize, LocateFixed, Download, Users, Skull, DoorOpen, Home, PawPrint, Flag, Bed, Crosshair, Archive, Search, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, LocateFixed, Download, Users, Skull, DoorOpen, Home, PawPrint, Flag, Bed, Crosshair, Archive, Search, X, Ruler, Navigation } from 'lucide-react';
 import { useQuery } from '../client.js';
+import { useHashParam, replaceParams } from '../route.js';
 import { Tabs, Loading, ErrorBox, PageHeader } from '../components/ui.jsx';
 import { Slot, TooltipScope } from '../components/inventory.jsx';
 import McText, { stripCodes } from '../components/McText.jsx';
-import { fmt, DIM_LABEL, DIM_COLOR, prettyName, sortDims, playerNames } from '../format.js';
+import { fmt, DIM_LABEL, DIM_COLOR, prettyName, mobName, sortDims, playerNames } from '../format.js';
 import { CONTAINER_LABEL, CONTAINER_COLOR, containerItems } from '../containers.js';
 
 const LAYERS = [
@@ -69,7 +70,7 @@ function useMarkers(dim, cfilter) {
       const k = `${e.position}`;
       if (seen.has(k)) continue;
       seen.add(k);
-      m.push({ layer: 'pets', x: e.position[0], z: e.position[2], label: e.name ? `${e.name}` : prettyName(e.type), detail: prettyName(e.type) });
+      m.push({ layer: 'pets', x: e.position[0], z: e.position[2], label: e.name ? `${e.name}` : mobName(e.type), detail: mobName(e.type) });
     }
     const L = summary.data?.level;
     if (L && dim === 'overworld' && L.spawn) m.push({ layer: 'world', x: L.spawn.x, z: L.spawn.z, label: 'Spawn do mundo', detail: L.spawn.y === 32767 ? 'altura automática' : `Y ${L.spawn.y}` });
@@ -87,13 +88,33 @@ function useMarkers(dim, cfilter) {
   }, [players.data, misc.data, summary.data, storage.data, dim, cfilter]);
 }
 
+/** "120, -340" or "120 64 -340" → { x, y?, z }. */
+function parseCoords(text) {
+  const n = (text.match(/-?\d+(\.\d+)?/g) || []).map(Number);
+  if (n.length === 2) return { x: n[0], z: n[1] };
+  if (n.length >= 3) return { x: n[0], y: n[1], z: n[2] };
+  return null;
+}
+
+const focusFromParams = p => (p?.x != null && p?.z != null && !Number.isNaN(+p.x) && !Number.isNaN(+p.z)
+  ? { dim: p.dim || 'overworld', x: +p.x, y: p.y != null && p.y !== '' ? +p.y : null, z: +p.z, label: p.label || '' }
+  : null);
+
 export default function MapPage({ nav }) {
-  const summary = useQuery('summary');
-  const dims = summary.data ? sortDims(Object.keys(summary.data.coverage)) : ['overworld'];
-  const [dim, setDim] = useState(nav?.focus?.dim || 'overworld');
-  // A place another page asked to show ("ver no mapa"): centred once the terrain is ready, then kept as a pin.
-  const [focus, setFocus] = useState(nav?.focus || null);
-  const pendingFocus = useRef(nav?.focus || null);
+  const coverage = useQuery('coverage');
+  const dims = coverage.data ? sortDims(Object.keys(coverage.data)) : ['overworld'];
+  const [dim, setDimParam] = useHashParam('dim', 'overworld');
+  // A place another page asked to show ("ver no mapa") or typed in "ir para": centred once the
+  // terrain is ready, then kept as a pin. It lives in the URL, so the link can be shared.
+  const [focus, setFocusState] = useState(() => focusFromParams(nav));
+  const pendingFocus = useRef(focus);
+  const setFocus = f => {
+    setFocusState(f);
+    replaceParams(f ? { x: Math.floor(f.x), y: f.y == null ? null : Math.round(f.y), z: Math.floor(f.z), label: f.label || null } : { x: null, y: null, z: null, label: null });
+  };
+  const setDim = d => { setDimParam(d); setSelected(null); setMeasure(m => (m ? { on: m.on } : m)); };
+  const [measure, setMeasure] = useState(null); // { on, a?, b? } in world coordinates
+  const [goto, setGoto] = useState('');
   const surface = useQuery('surface', { dim });
   const [cfilter, setCfilter] = useState(DEFAULT_CFILTER);
   const markers = useMarkers(dim, cfilter);
@@ -189,7 +210,30 @@ export default function MapPage({ nav }) {
         ctx.fillText(focus.label, x - tw / 2, y - 30);
       }
     }
-  }, [surface.data, markers, layers, selected, focus, dim]);
+    if (measure?.a) {
+      const ax = (measure.a.x - ox) * scale, ay = (measure.a.z - oz) * scale;
+      const end = measure.b || measure.cursor;
+      ctx.fillStyle = '#ffd84a';
+      ctx.strokeStyle = '#ffd84a';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ax, ay, 4, 0, Math.PI * 2); ctx.fill();
+      if (end) {
+        const bx = (end.x - ox) * scale, by = (end.z - oz) * scale;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(bx, by, 4, 0, Math.PI * 2); ctx.fill();
+        const d = Math.round(Math.hypot(end.x - measure.a.x, end.z - measure.a.z));
+        const text = `${fmt(d)} blocos`;
+        ctx.font = '700 12px Inter, sans-serif';
+        const tw = ctx.measureText(text).width, mx = (ax + bx) / 2, my = (ay + by) / 2;
+        ctx.fillStyle = 'rgba(8,10,14,0.88)';
+        ctx.fillRect(mx - tw / 2 - 6, my - 22, tw + 12, 19);
+        ctx.fillStyle = '#ffd84a';
+        ctx.fillText(text, mx - tw / 2, my - 8);
+      }
+    }
+  }, [surface.data, markers, layers, selected, focus, dim, measure]);
 
   const fit = useCallback(() => {
     const s = surface.data, c = wrapRef.current;
@@ -283,7 +327,8 @@ export default function MapPage({ nav }) {
   };
   const onPointerMove = e => {
     const p = toWorld(e);
-    if (e.pointerType === 'mouse') setHover({ x: Math.floor(p.x), z: Math.floor(p.z), marker: hitMarker(p) });
+    if (e.pointerType === 'mouse') setHover({ x: Math.floor(p.x), z: Math.floor(p.z), marker: measure?.on ? null : hitMarker(p) });
+    if (measure?.a && !measure.b && e.pointerType === 'mouse') setMeasure(m => ({ ...m, cursor: { x: p.x, z: p.z } }));
     if (!pointers.current.has(e.pointerId)) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const d = drag.current;
@@ -311,6 +356,12 @@ export default function MapPage({ nav }) {
       return;
     }
     drag.current = null;
+    if (d && !d.moved && measure?.on) {
+      const p = toWorld(e);
+      const pt = { x: Math.floor(p.x) + 0.5, z: Math.floor(p.z) + 0.5 };
+      setMeasure(m => (!m.a || m.b ? { on: true, a: pt } : { ...m, b: pt, cursor: null }));
+      return;
+    }
     if (d && !d.moved) {
       const hit = hitMarker(toWorld(e));
       setSelected(hit);
@@ -324,6 +375,7 @@ export default function MapPage({ nav }) {
     if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomAt(1.5, c.clientWidth / 2, c.clientHeight / 2); }
     else if (e.key === '-') { e.preventDefault(); zoomAt(1 / 1.5, c.clientWidth / 2, c.clientHeight / 2); }
     else if (e.key === '0') { e.preventDefault(); fit(); }
+    else if (e.key === 'Escape' && measure) setMeasure(null);
   };
 
   const download = () => {
@@ -341,13 +393,23 @@ export default function MapPage({ nav }) {
   };
 
   const host = markers.find(m => m.layer === 'players');
+  const runGoto = e => {
+    e.preventDefault();
+    const c = parseCoords(goto);
+    if (!c) return;
+    const f = { dim, ...c, label: `X ${c.x} · Z ${c.z}` };
+    setFocus(f);
+    centerOn(f.x, f.z, Math.max(view.current.scale, 2));
+    setGoto('');
+  };
+  const measured = measure?.a && measure?.b ? Math.round(Math.hypot(measure.b.x - measure.a.x, measure.b.z - measure.a.z)) : null;
 
   return (
     <div className="page page-map">
       <PageHeader
         title="Mapa do mundo"
         subtitle="Vista aérea gerada a partir dos blocos salvos. Clique nos marcadores para ver detalhes."
-        actions={<Tabs label="Dimensão" value={dim} onChange={d => { setDim(d); setSelected(null); }} items={dims.map(d => ({ value: d, label: DIM_LABEL[d], color: DIM_COLOR[d] }))} />}
+        actions={<Tabs label="Dimensão" value={dim} onChange={setDim} items={dims.map(d => ({ value: d, label: DIM_LABEL[d], color: DIM_COLOR[d] }))} />}
       />
       <div className="map-layout">
         <div className="map-wrap" ref={wrapRef}>
@@ -363,7 +425,7 @@ export default function MapPage({ nav }) {
             onPointerCancel={onPointerUp}
             onPointerLeave={e => { if (e.pointerType === 'mouse') setHover(null); }}
             onKeyDown={onKeyDown}
-            style={{ cursor: hover?.marker ? 'pointer' : drag.current ? 'grabbing' : 'grab' }}
+            style={{ cursor: measure?.on ? 'crosshair' : hover?.marker ? 'pointer' : drag.current ? 'grabbing' : 'grab' }}
           />
           {surface.loading && <div className="map-overlay"><Loading text="Renderizando o terreno…" sub="Lendo cada coluna de blocos. Pode levar alguns segundos." /></div>}
           {surface.error && <div className="map-overlay"><ErrorBox error={surface.error} /></div>}
@@ -373,8 +435,16 @@ export default function MapPage({ nav }) {
             <button type="button" className="icon-btn" title="Afastar (−)" aria-label="Afastar" onClick={() => zoomAt(1 / 1.5, wrapRef.current.clientWidth / 2, wrapRef.current.clientHeight / 2)}><ZoomOut size={18} /></button>
             <button type="button" className="icon-btn" title="Ver o mundo inteiro (0)" aria-label="Ver o mundo inteiro" onClick={fit}><Maximize size={18} /></button>
             {host && <button type="button" className="icon-btn" title="Centralizar no Host" aria-label="Centralizar no Host" onClick={() => centerOn(host.x, host.z, 3)}><LocateFixed size={18} /></button>}
+            <button type="button" className={`icon-btn${measure?.on ? ' on' : ''}`} title="Medir distância: clique em dois pontos" aria-label="Medir distância" aria-pressed={!!measure?.on} onClick={() => setMeasure(m => (m?.on ? null : { on: true }))}><Ruler size={18} /></button>
             <button type="button" className="icon-btn" title="Baixar o mapa em PNG" aria-label="Baixar o mapa em PNG" onClick={download}><Download size={18} /></button>
           </div>
+          {measure?.on && (
+            <div className="measure-hud" role="status">
+              <Ruler size={14} />
+              {measured != null ? <><strong>{fmt(measured)} blocos</strong><span>em linha reta</span></> : <span>{measure.a ? 'Clique no segundo ponto' : 'Clique no primeiro ponto'}</span>}
+              <button type="button" className="icon-x" onClick={() => setMeasure(null)} aria-label="Parar de medir"><X size={13} /></button>
+            </div>
+          )}
           <div className="map-hud">
             {hover ? <><Crosshair size={13} /> X {fmt(hover.x)} · Z {fmt(hover.z)}</> : <><span className="hud-hint pointer-only">Arraste para mover · roda do mouse para zoom</span><span className="hud-hint touch-only">Arraste para mover · pinça para zoom</span></>}
             <span className="sep" /> zoom {view.current.scale >= 1 ? `${view.current.scale.toFixed(1)}×` : `1:${Math.round(1 / view.current.scale)}`}
@@ -392,6 +462,11 @@ export default function MapPage({ nav }) {
               <button type="button" className="icon-x" onClick={() => setFocus(null)} aria-label="Remover marcação"><X size={13} /></button>
             </div>
           )}
+          <form className="search search-sm goto" onSubmit={runGoto}>
+            <Navigation size={14} aria-hidden="true" />
+            <input value={goto} onChange={e => setGoto(e.target.value)} placeholder="Ir para X, Z (ex.: 120, -340)" aria-label="Ir para coordenada" inputMode="numeric" spellCheck={false} />
+            <button type="submit" className="btn btn-sm" disabled={!parseCoords(goto)}>Ir</button>
+          </form>
           <h4>Camadas</h4>
           {LAYERS.map(l => {
             const n = markers.filter(m => m.layer === l.id).length;

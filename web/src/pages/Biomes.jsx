@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { Trees } from 'lucide-react';
 import { useQuery } from '../client.js';
+import { useHashParam } from '../route.js';
 import { Panel, Async, PageHeader, BarList, Tabs } from '../components/ui.jsx';
 import { DIM_LABEL, DIM_COLOR, fmtCompact, sortDims } from '../format.js';
 
@@ -18,7 +18,7 @@ const pretty = n => (n === 'hell' ? 'Nether Wastes' : n).replace(/_/g, ' ').repl
 
 export default function Biomes() {
   const state = useQuery('biomes');
-  const [dim, setDim] = useState(null);
+  const [dim, setDim] = useHashParam('dim', '');
   return (
     <div className="page">
       <PageHeader title="Biomas" subtitle="Quanto de cada bioma existe nas áreas exploradas (o Bedrock guarda um bioma por bloco, em 3D)." />

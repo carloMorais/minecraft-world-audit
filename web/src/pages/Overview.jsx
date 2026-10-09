@@ -1,11 +1,12 @@
 import {
-  CalendarDays, Clock, ChevronRight, Users, PawPrint, Mountain, Archive, Trophy, Skull, Copy, Check, Info, Puzzle, Gavel, Sparkles, Heart, Star,
+  CalendarDays, Clock, ChevronRight, Gem, Users, PawPrint, Mountain, Archive, Trophy, Skull, Copy, Check, Info, Puzzle, Gavel, Sparkles, Heart, Star,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '../client.js';
 import { Panel, StatCard, BarList, Async, Badge } from '../components/ui.jsx';
-import { MobIcon } from '../components/icons.jsx';
-import { fmt, fmtCompact, prettyName, DIM_LABEL, DIM_COLOR, GAMEMODE_LABEL, DIFFICULTY_LABEL, timeAgo, pos, sortDims, playerNames, isHost, blockEntityLabel } from '../format.js';
+import { MobIcon, ItemIcon } from '../components/icons.jsx';
+import { TREASURES, treasureCount } from '../treasures.js';
+import { fmt, fmtCompact, mobName, DIM_LABEL, DIM_COLOR, GAMEMODE_LABEL, DIFFICULTY_LABEL, timeAgo, pos, sortDims, playerNames, isHost, blockEntityLabel } from '../format.js';
 import { CONTAINER_LABEL } from '../containers.js';
 
 const RULE_LABEL = {
@@ -29,10 +30,85 @@ function CopySeed({ seed }) {
   );
 }
 
+function Hero({ L, icon }) {
+  return (
+    <div className="hero" style={icon ? { '--hero-img': `url(${icon})` } : undefined}>
+      <div className="hero-overlay" />
+      <div className="hero-content">
+        {icon && <img className="hero-icon" src={icon} alt="" />}
+        <div className="hero-text">
+          <div className="hero-badges">
+            <Badge tone="green">{GAMEMODE_LABEL[L.gameMode] || L.gameMode}</Badge>
+            <Badge tone={L.difficulty === 'hard' ? 'red' : 'neutral'}>{DIFFICULTY_LABEL[L.difficulty] || L.difficulty}</Badge>
+            {L.hardcore && <Badge tone="red"><Heart size={12} /> Hardcore</Badge>}
+            {L.cheatsEnabled && <Badge tone="gold">Cheats ativos</Badge>}
+            <Badge>Bedrock {L.lastOpenedWithVersion?.split('.').slice(0, 3).join('.')}</Badge>
+          </div>
+          <h1>{L.name}</h1>
+          <p>Jogado pela última vez em {timeAgo(L.lastPlayed)}{L.timesOpened ? ` · aberto ${fmt(L.timesOpened)} vezes` : ''}</p>
+          <CopySeed seed={L.seed} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlayersPanel({ players, go }) {
+  const names = playerNames(players);
+  return (
+    <Panel title="Jogadores" icon={Users} actions={<button type="button" className="link-btn" onClick={() => go('players')}>Ver inventários →</button>}>
+      <div className="player-list">
+        {players.map(p => (
+          <button type="button" key={p.key} className="player-row" onClick={() => go('players', { p: p.key })}>
+            <span className="avatar" style={{ '--c': isHost(p) ? 'var(--accent)' : 'var(--blue)' }}>{isHost(p) ? 'H' : names.get(p.key).split(' ')[1]}</span>
+            <div className="player-row-main">
+              <strong>{names.get(p.key)}{isHost(p) && <small className="muted"> · jogador local</small>}</strong>
+              <small>{DIM_LABEL[p.dimension]} · {pos(p.position)}</small>
+            </div>
+            <div className="player-row-stats">
+              <span title="Nível de XP"><Star size={13} /> {p.xp.level}</span>
+              <span title="Vida"><Heart size={13} /> {p.health ? Math.round(p.health.current) : '—'}</span>
+              <span title="Itens carregados">{fmt(Object.values(p.itemTotals).reduce((a, b) => a + b, 0))} itens</span>
+              <ChevronRight size={15} className="row-go" aria-hidden="true" />
+            </div>
+          </button>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+/** Valuable items across the whole world; each one opens the item search. */
+function Treasures({ totals, go }) {
+  return (
+    <Panel title="Tesouros do mundo" icon={Gem} actions={<small className="muted">somando baús, jogadores, shulkers e mobs</small>}>
+      <div className="treasures">
+        {TREASURES.map(t => {
+          const n = treasureCount(t, totals);
+          return (
+            <button type="button" key={t.key} className={`treasure${n ? '' : ' none'}`} onClick={() => go('items', { q: t.q })} title={`Onde estão: ${t.label}`}>
+              <ItemIcon id={t.icon} size={34} enchanted={t.key === 'books'} />
+              <div>
+                <strong>{fmt(n)}</strong>
+                <small>{t.label}{t.hint ? ` (${t.hint})` : ''}</small>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+
 export default function Overview({ icon, go }) {
+  const level = useQuery('level');
+  const players = useQuery('players');
+  const items = useQuery('items');
   const state = useQuery('summary');
   return (
-    <Async state={state} loadingText="Montando o resumo do mundo…">
+    <div className="page">
+      {level.data ? <Hero L={level.data} icon={icon} /> : <div className="hero hero-skeleton" />}
+      <Async state={state} loadingText="Contando mobs, baús e blocos especiais…" loadingSub="O resumo aparece em seguida; os jogadores já estão abaixo.">
       {S => {
         const L = S.level;
         const totalChunks = Object.values(S.coverage).reduce((a, c) => a + c.chunks, 0);
@@ -40,30 +116,10 @@ export default function Overview({ icon, go }) {
         const rules = Object.entries(L.gameRules).filter(([k, v]) => typeof v === 'number' && (v === 0 || v === 1) && RULE_LABEL[k])
           .sort((a, b) => RULE_LABEL[a[0]].localeCompare(RULE_LABEL[b[0]], 'pt-BR'));
         const rulesOn = rules.filter(([, v]) => v), rulesOff = rules.filter(([, v]) => !v);
-        const names = playerNames(S.players);
         const packs = [...L.behaviorPacks.map(p => ({ ...p, kind: 'BP' })), ...L.resourcePacks.map(p => ({ ...p, kind: 'RP' }))];
         const experiments = Object.entries(L.experiments).filter(([, v]) => v);
         return (
-          <div className="page">
-            <div className="hero" style={icon ? { '--hero-img': `url(${icon})` } : undefined}>
-              <div className="hero-overlay" />
-              <div className="hero-content">
-                {icon && <img className="hero-icon" src={icon} alt="" />}
-                <div className="hero-text">
-                  <div className="hero-badges">
-                    <Badge tone="green">{GAMEMODE_LABEL[L.gameMode] || L.gameMode}</Badge>
-                    <Badge tone={L.difficulty === 'hard' ? 'red' : 'neutral'}>{DIFFICULTY_LABEL[L.difficulty] || L.difficulty}</Badge>
-                    {L.hardcore && <Badge tone="red"><Heart size={12} /> Hardcore</Badge>}
-                    {L.cheatsEnabled && <Badge tone="gold">Cheats ativos</Badge>}
-                    <Badge>Bedrock {L.lastOpenedWithVersion?.split('.').slice(0, 3).join('.')}</Badge>
-                  </div>
-                  <h1>{L.name}</h1>
-                  <p>Jogado pela última vez em {timeAgo(L.lastPlayed)}{L.timesOpened ? ` · aberto ${fmt(L.timesOpened)} vezes` : ''}</p>
-                  <CopySeed seed={L.seed} />
-                </div>
-              </div>
-            </div>
-
+          <>
             <div className="stats-grid six">
               <StatCard icon={CalendarDays} label="Dias no jogo" value={fmt(L.time.daysPlayed)} sub={`tick ${fmtCompact(L.time.worldTimeTicks)}`} tone="gold" />
               <StatCard icon={Clock} label="Tempo de jogo" value={`${fmt(Math.round(L.time.approxPlayTimeHours))} h`} sub="com o mundo aberto" tone="blue" />
@@ -73,26 +129,10 @@ export default function Overview({ icon, go }) {
               <StatCard icon={Archive} label="Containers com itens" value={fmt(S.blockEntities.containersWithItems)} sub={`+${fmt(S.blockEntities.unopenedLootContainers)} de loot intactos`} tone="orange" onClick={() => go('containers')} action="Ver baús e containers" />
             </div>
 
+            {items.data && <Treasures totals={items.data} go={go} />}
+
             <div className="grid-2">
-              <Panel title="Jogadores" icon={Users} actions={<button type="button" className="link-btn" onClick={() => go('players')}>Ver inventários →</button>}>
-                <div className="player-list">
-                  {S.players.map(p => (
-                    <button type="button" key={p.key} className="player-row" onClick={() => go('players', { key: p.key })}>
-                      <span className="avatar" style={{ '--c': isHost(p) ? 'var(--accent)' : 'var(--blue)' }}>{isHost(p) ? 'H' : names.get(p.key).split(' ')[1]}</span>
-                      <div className="player-row-main">
-                        <strong>{names.get(p.key)}{isHost(p) && <small className="muted"> · jogador local</small>}</strong>
-                        <small>{DIM_LABEL[p.dimension]} · {pos(p.position)}</small>
-                      </div>
-                      <div className="player-row-stats">
-                        <span title="Nível de XP"><Star size={13} /> {p.xp.level}</span>
-                        <span title="Vida"><Heart size={13} /> {p.health ? Math.round(p.health.current) : '—'}</span>
-                        <span title="Itens carregados">{fmt(p.itemCount)} itens</span>
-                        <ChevronRight size={15} className="row-go" aria-hidden="true" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </Panel>
+              {players.data && <PlayersPanel players={players.data} go={go} />}
 
               <Panel title="Conquistas e progresso" icon={Trophy}>
                 <div className="kv-cards">
@@ -140,7 +180,7 @@ export default function Overview({ icon, go }) {
               </Panel>
 
               <Panel title="Mobs mais comuns" icon={PawPrint} actions={<button type="button" className="link-btn" onClick={() => go('entities')}>Todos →</button>}>
-                <BarList rows={topMobs.map(([t, n]) => ({ key: t, label: prettyName(t), value: n, icon: <MobIcon id={t} size={22} />, color: 'var(--purple)' }))} limit={10} format={fmt} onSelect={r => go('entities', { type: r.key })} />
+                <BarList rows={topMobs.map(([t, n]) => ({ key: t, label: mobName(t), value: n, icon: <MobIcon id={t} size={22} />, color: 'var(--purple)' }))} limit={10} format={fmt} onSelect={r => go('entities', { type: r.key })} />
               </Panel>
 
               <Panel title="Blocos especiais" icon={Archive}>
@@ -194,9 +234,11 @@ export default function Overview({ icon, go }) {
                 )}
               </Panel>
             </div>
-          </div>
+          </>
         );
       }}
-    </Async>
+      </Async>
+      {!state.data && !state.error && players.data && <div className="grid-2"><PlayersPanel players={players.data} go={go} /></div>}
+    </div>
   );
 }
