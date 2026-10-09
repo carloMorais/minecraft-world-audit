@@ -426,7 +426,13 @@ const CAPACITY = { Chest: 27, Barrel: 27, ShulkerBox: 27, Hopper: 5, Dispenser: 
 
 /** Fullness of each container, items spread over many containers and slots that merging stacks would free. */
 function storageReport(blockEntities, bases = []) {
-  const baseOf = (dim, p) => bases.find(b => b.dimension === dim && b.chunkList.some(([x, z]) => x === Math.floor(p[0] / 16) && z === Math.floor(p[2] / 16)));
+  const chunkMap = new Map();
+  for (const b of bases) {
+    for (const [x, z] of b.chunkList) {
+      chunkMap.set(`${b.dimension}:${x}:${z}`, b);
+    }
+  }
+  const baseOf = (dim, p) => chunkMap.get(`${dim}:${Math.floor(p[0] / 16)}:${Math.floor(p[2] / 16)}`);
   const containers = [];
   const spread = {};
   let used = 0, capacity = 0;
