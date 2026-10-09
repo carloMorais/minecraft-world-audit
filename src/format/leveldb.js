@@ -102,7 +102,7 @@ function* tableRecords(file) {
   if (file.length < 48) return;
   const footer = file.subarray(file.length - 48);
   let p = 0;
-  [, p] = readBlockHandle(footer, p); // metaindex handle, unused
+  p = readBlockHandle(footer, p)[1]; // metaindex handle, unused
   const [indexHandle] = readBlockHandle(footer, p);
   const index = readTableBlock(file, indexHandle);
   for (const [, handleBuf] of blockEntries(index)) {
@@ -173,13 +173,13 @@ function parseManifest(file) {
       switch (tag) {
         case 1: skipSlice(); break;                                   // comparator
         case 2: [logNumber, p] = readVarint(rec, p); break;           // log number
-        case 3: [, p] = readVarint(rec, p); break;                    // next file number
-        case 4: [, p] = readVarint(rec, p); break;                    // last sequence
-        case 5: [, p] = readVarint(rec, p); skipSlice(); break;       // compact pointer
-        case 6: { let n; [, p] = readVarint(rec, p); [n, p] = readVarint(rec, p); live.delete(n); break; }
+        case 3: p = readVarint(rec, p)[1]; break;                     // next file number
+        case 4: p = readVarint(rec, p)[1]; break;                     // last sequence
+        case 5: p = readVarint(rec, p)[1]; skipSlice(); break;        // compact pointer
+        case 6: { let n; p = readVarint(rec, p)[1]; [n, p] = readVarint(rec, p); live.delete(n); break; }
         case 7: {                                                     // new file
-          let n; [, p] = readVarint(rec, p); [n, p] = readVarint(rec, p);
-          [, p] = readVarint(rec, p); skipSlice(); skipSlice();
+          let n; p = readVarint(rec, p)[1]; [n, p] = readVarint(rec, p);
+          p = readVarint(rec, p)[1]; skipSlice(); skipSlice();
           live.add(n); break;
         }
         case 9: [prevLogNumber, p] = readVarint(rec, p); break;       // prev log number
