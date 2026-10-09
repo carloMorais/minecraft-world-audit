@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "test": "node --test \"test/*.test.js\"",
     "lint": "eslint .",
-    "test:web": "vite build && node --test \"test/web/*.test.js\""
+    "test:web": "vite build && node --test \"test/web/*.test.js\"",
+    "sprites": "node scripts/sprite-sheet.js"
   },
   "engines": {
     "node": ">=22"

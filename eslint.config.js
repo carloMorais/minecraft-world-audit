@@ -18,7 +18,7 @@ export default defineConfig([
     },
   },
   // shared extractor core and CLI
-  { files: ['src/**/*.js', 'bin/**/*.js', 'test/**/*.js'], languageOptions: { globals: { ...globals.node } } },
+  { files: ['src/**/*.js', 'bin/**/*.js', 'test/**/*.js', 'scripts/**/*.js', 'benchmark.js'], languageOptions: { globals: { ...globals.node } } },
   // browser app and its worker
   {
     files: ['web/**/*.{js,jsx}'],
