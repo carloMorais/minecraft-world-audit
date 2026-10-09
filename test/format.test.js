@@ -40,6 +40,15 @@ test('decodes a v9 sub-chunk with 1-bit palette', () => {
   assert.deepStrictEqual(Array.from(counted.layers[0].counts), [4095, 1]);
 });
 
+test('decodes single-block sub-chunk layers with and without the palette count', () => {
+  const withCount = Buffer.concat([Buffer.from([9, 1, 0xfd, 0]), i32(1), blockState('minecraft:deepslate')]);
+  const without = Buffer.concat([Buffer.from([9, 2, 4, 0]), blockState('minecraft:stone'), Buffer.from([0]), blockState('minecraft:air')]);
+  assert.strictEqual(decodeSubChunk(withCount, -3).layers[0].palette[0].name, 'minecraft:deepslate');
+  const sc = decodeSubChunk(without, 4, { countsOnly: true });
+  assert.deepStrictEqual(sc.layers.map(l => l.palette[0].name), ['minecraft:stone', 'minecraft:air']);
+  assert.strictEqual(sc.layers[1].counts[0], 4096);
+});
+
 test('decodes Data3D single-value and copy biome storages', () => {
   const buf = Buffer.concat([Buffer.alloc(512), Buffer.from([1]), i32(190), Buffer.from([0xff])]);
   const d3 = decodeData3D(buf);

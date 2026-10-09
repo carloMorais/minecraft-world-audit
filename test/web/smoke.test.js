@@ -1,7 +1,8 @@
 // End-to-end smoke test of the built web app: opens the first samples/*.mcworld in headless Chrome
 // (over the DevTools protocol, no extra dependencies), visits every page and fails on uncaught
 // exceptions, console errors or an error box. Skipped when there is no sample world or no Chrome.
-// Run with `npm run test:web` (builds first). Set CHROME to the browser binary if it is not found.
+// Run with `npm run test:web` (builds first). Set CHROME to the browser binary if it is not found,
+// and SAMPLE to a file name in samples/ to open another world.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -11,7 +12,7 @@ import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '../..');
 const PAGES = ['overview', 'map', 'world', 'players', 'players?view=compare', 'containers', 'items?q=diamond', 'entities', 'blocks', 'biomes', 'bases', 'bases?id=1', 'map?heat=build&layer=bases', 'wealth', 'collections', 'villagers', 'storage', 'gear', 'performance', 'mining', 'mining?ore=diamond', 'portals', 'compare', 'advanced'];
-const sample = existsSync(join(ROOT, 'samples')) && readdirSync(join(ROOT, 'samples')).find(f => f.endsWith('.mcworld'));
+const sample = process.env.SAMPLE || existsSync(join(ROOT, 'samples')) && readdirSync(join(ROOT, 'samples')).find(f => f.endsWith('.mcworld'));
 const chrome = [
   process.env.CHROME,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',

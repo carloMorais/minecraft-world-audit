@@ -35,7 +35,8 @@ function decodePlayer(p, key) {
     dimension: DIMENSIONS[p.DimensionId] ?? p.DimensionId,
     position: p.Pos ? p.Pos.map(v => +v.toFixed(2)) : null,
     rotation: p.Rotation ? p.Rotation.map(v => +v.toFixed(1)) : null,
-    spawnPoint: p.SpawnX !== undefined && p.SpawnY !== -32768
+    // unset spawn: SpawnY -32768 in older saves, INT32_MIN coords with SpawnDimension 3 in newer ones
+    spawnPoint: p.SpawnX !== undefined && p.SpawnY !== -32768 && p.SpawnY !== -2147483648 && p.SpawnDimension !== 3
       ? { x: p.SpawnX, y: p.SpawnY, z: p.SpawnZ, dimension: DIMENSIONS[p.SpawnDimension] ?? p.SpawnDimension,
         block: p.SpawnBlockPositionX !== undefined ? [p.SpawnBlockPositionX, p.SpawnBlockPositionY, p.SpawnBlockPositionZ] : undefined }
       : null,

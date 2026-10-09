@@ -114,16 +114,16 @@ function oreDistribution(world) {
 // Block entities the world generates by itself (structures, villages, nature): no evidence of a base.
 const NATURAL_BE = new Set(['MobSpawner', 'TrialSpawner', 'Vault', 'BrushableBlock', 'SculkSensor', 'SculkCatalyst', 'SculkShrieker',
   'CalibratedSculkSensor', 'EndPortal', 'EndGateway', 'CreakingHeart', 'Bell', 'Beehive', 'BeeNest', 'StructureBlock', 'Jigsaw',
-  'Skull', 'DecoratedPot', 'Lectern', 'Cauldron', 'FlowerPot', 'Campfire', 'EnchantTable', 'Banner']);
+  'Skull', 'DecoratedPot', 'Lectern', 'Cauldron', 'FlowerPot', 'Campfire', 'EnchantTable', 'Banner', 'SporeBlossom', 'PotentSulfurBlock']);
 const BE_WEIGHT = {
   Sign: 12, HangingSign: 12, Beacon: 200, Conduit: 100, Lodestone: 60, Jukebox: 20, BrewingStand: 15, Bed: 6,
   Hopper: 4, Comparator: 4, PistonArm: 3, DaylightDetector: 4, Crafter: 6, Dispenser: 3, Dropper: 3, ItemFrame: 8, GlowItemFrame: 8,
-  Furnace: 6, BlastFurnace: 8, Smoker: 8, Chest: 6, Barrel: 6, ShulkerBox: 25, EnderChest: 30, ChiseledBookshelf: 10,
+  Furnace: 6, BlastFurnace: 8, Smoker: 8, Chest: 6, Barrel: 6, ShulkerBox: 25, EnderChest: 30, ChiseledBookshelf: 10, Shelf: 8,
 };
 // Generated structures whose blocks look player-made (trial chambers, ancient cities, trail ruins).
 const STRUCTURE_BE = new Set(['Vault', 'TrialSpawner', 'SculkShrieker', 'SculkCatalyst', 'BrushableBlock']);
 const STORAGE_BE = new Set(['Chest', 'Barrel', 'ShulkerBox', 'Hopper', 'Dispenser', 'Dropper', 'Furnace', 'BlastFurnace', 'Smoker',
-  'BrewingStand', 'Crafter', 'ChiseledBookshelf', 'DecoratedPot', 'ItemFrame', 'GlowItemFrame', 'Jukebox', 'Lectern']);
+  'BrewingStand', 'Crafter', 'ChiseledBookshelf', 'DecoratedPot', 'ItemFrame', 'GlowItemFrame', 'Jukebox', 'Lectern', 'Shelf']);
 const TICKING_BE = new Set(['Hopper', 'Furnace', 'BlastFurnace', 'Smoker', 'BrewingStand', 'Beacon', 'Conduit', 'MobSpawner',
   'PistonArm', 'Comparator', 'DaylightDetector', 'Crafter', 'Campfire', 'SculkSensor', 'CalibratedSculkSensor']);
 // Entity types that are never mobs for farm detection.
@@ -422,7 +422,7 @@ function itemsValue(totals) {
 
 // ---------- storage organisation ----------
 
-const CAPACITY = { Chest: 27, Barrel: 27, ShulkerBox: 27, Hopper: 5, Dispenser: 9, Dropper: 9, Furnace: 3, BlastFurnace: 3, Smoker: 3, BrewingStand: 5, Crafter: 9, ChiseledBookshelf: 6 };
+const CAPACITY = { Chest: 27, Barrel: 27, ShulkerBox: 27, Hopper: 5, Dispenser: 9, Dropper: 9, Furnace: 3, BlastFurnace: 3, Smoker: 3, BrewingStand: 5, Crafter: 9, ChiseledBookshelf: 6, Shelf: 3 };
 
 /** Fullness of each container, items spread over many containers and slots that merging stacks would free. */
 function storageReport(blockEntities, bases = []) {

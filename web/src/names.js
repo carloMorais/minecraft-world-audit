@@ -89,6 +89,44 @@ const EXACT = {
   copper_block: 'Bloco de cobre', raw_iron_block: 'Bloco de ferro bruto', raw_gold_block: 'Bloco de ouro bruto', raw_copper_block: 'Bloco de cobre bruto',
   terracotta: 'Terracota', hardened_clay: 'Terracota', wool: 'Lã', carpet: 'Tapete', concrete: 'Concreto', candle: 'Vela', bed: 'Cama', banner: 'Estandarte',
   white_tulip: 'Tulipa branca', red_tulip: 'Tulipa vermelha', pink_tulip: 'Tulipa rosa', orange_tulip: 'Tulipa laranja', allium: 'Alho-poró', blue_orchid: 'Orquídea azul',
+  copper_nugget: 'Pepita de cobre', netherbrick: 'Tijolo do Nether', popped_chorus_fruit: 'Fruta do coro estourada', ominous_bottle: 'Frasco sinistro',
+  resin_clump: 'Aglomerado de resina', bamboo_raft: 'Jangada de bambu', candle_cake: 'Bolo com vela', dragon_egg: 'Ovo do dragão',
+  dragon_head: 'Cabeça de dragão', zombie_head: 'Cabeça de zumbi', creeper_head: 'Cabeça de creeper', piglin_head: 'Cabeça de piglin',
+  player_head: 'Cabeça de jogador', skeleton_skull: 'Crânio de esqueleto', wither_skeleton_skull: 'Crânio de esqueleto wither',
+  tuff_bricks: 'Tijolos de tufo', chiseled_tuff_bricks: 'Tijolos de tufo talhados', chiseled_tuff: 'Tufo talhado', polished_tuff: 'Tufo polido',
+  chiseled_deepslate: 'Ardósia talhada', cracked_deepslate_bricks: 'Tijolos de ardósia rachados', cracked_deepslate_tiles: 'Ladrilhos de ardósia rachados',
+  reinforced_deepslate: 'Ardósia reforçada', chiseled_sandstone: 'Arenito talhado', chiseled_red_sandstone: 'Arenito vermelho talhado',
+  cracked_polished_blackstone_bricks: 'Tijolos de pedra-negra polida rachados', chiseled_polished_blackstone: 'Pedra-negra polida talhada',
+  purpur: 'Púrpura', purpur_pillar: 'Pilar de púrpura', quartz_pillar: 'Pilar de quartzo', normal_stone: 'Pedra', bamboo_block: 'Bloco de bambu',
+  bamboo_mosaic: 'Mosaico de bambu', nether_wart_block: 'Bloco de fungo do Nether', warped_wart_block: 'Bloco de fungo distorcido',
+  shroomlight: 'Cogulâmpada', nether_brick_fence: 'Cerca de tijolos do Nether', end_rod: 'Barra do End', iron_chain: 'Corrente de ferro',
+  cinnabar: 'Cinábrio', polished_cinnabar: 'Cinábrio polido', sulfur: 'Enxofre', polished_sulfur: 'Enxofre polido', potent_sulfur: 'Enxofre potente',
+  sulfur_spike: 'Espinho de enxofre', dried_ghast: 'Ghast seco', straw_bed: 'Cama de palha',
+  dirt_with_roots: 'Terra com raízes', grass_path: 'Caminho de grama', dirt_path: 'Caminho de grama', farmland: 'Terra arada', powder_snow: 'Neve fofa',
+  suspicious_gravel: 'Cascalho suspeito', suspicious_sand: 'Areia suspeita', infested_stone: 'Pedra infestada', infested_deepslate: 'Ardósia infestada',
+  pale_moss_block: 'Bloco de musgo pálido', pale_moss_carpet: 'Tapete de musgo pálido', pale_hanging_moss: 'Musgo pálido suspenso',
+  azalea: 'Azaleia', flowering_azalea: 'Azaleia florida', azalea_leaves: 'Folhas de azaleia', azalea_leaves_flowered: 'Folhas de azaleia floridas',
+  red_poplar_leaves: 'Folhas de choupo vermelhas', orange_poplar_leaves: 'Folhas de choupo laranja', yellow_poplar_leaves: 'Folhas de choupo amarelas',
+  mangrove_roots: 'Raízes de mangue', muddy_mangrove_roots: 'Raízes de mangue lamacentas', mangrove_propagule: 'Propágulo de mangue',
+  hanging_roots: 'Raízes suspensas', big_dripleaf: 'Planta gotejante grande', small_dripleaf_block: 'Planta gotejante pequena',
+  spore_blossom: 'Esporo florido', glow_lichen: 'Líquen brilhante', weeping_vines: 'Vinhas chorosas', twisting_vines: 'Vinhas retorcidas',
+  cave_vines: 'Trepadeira das cavernas', cave_vines_body_with_berries: 'Trepadeira das cavernas com bagas',
+  cave_vines_head_with_berries: 'Trepadeira das cavernas com bagas', chorus_flower: 'Flor do coro', chorus_plant: 'Planta do coro',
+  lilac: 'Lilás', peony: 'Peônia', rose_bush: 'Roseira', large_fern: 'Samambaia grande', pink_petals: 'Pétalas rosa', wildflowers: 'Flores silvestres',
+  leaf_litter: 'Folhas caídas', bush: 'Arbusto', firefly_bush: 'Arbusto de vaga-lumes', deadbush: 'Arbusto morto', dead_bush: 'Arbusto morto',
+  red_shrub: 'Arbusto vermelho', tall_dry_grass: 'Grama seca alta', short_dry_grass: 'Grama seca', cactus_flower: 'Flor de cacto',
+  closed_eyeblossom: 'Flor-olho fechada', open_eyeblossom: 'Flor-olho aberta', shelf_mushroom: 'Cogumelo-prateleira', sea_pickle: 'Pepino-do-mar',
+  mushroom_stem: 'Caule de cogumelo', red_mushroom_block: 'Bloco de cogumelo vermelho', brown_mushroom_block: 'Bloco de cogumelo marrom',
+  small_amethyst_bud: 'Broto de ametista pequeno', medium_amethyst_bud: 'Broto de ametista médio', large_amethyst_bud: 'Broto de ametista grande',
+  sweet_berry_bush: 'Arbusto de bagas doces', pumpkin_stem: 'Caule de abóbora', melon_stem: 'Caule de melancia', potatoes: 'Batatas',
+  carrots: 'Cenouras', cocoa: 'Cacau', reeds: 'Cana-de-açúcar', fire: 'Fogo', soul_fire: 'Fogo das almas', portal: 'Portal do Nether',
+  end_portal: 'Portal do End', end_gateway: 'Portal de passagem do End', bubble_column: 'Coluna de bolhas', redstone_wire: 'Fio de redstone',
+  trip_wire: 'Linha de armadilha', tripwire_hook: 'Gancho de armadilha', piston_arm_collision: 'Cabeça de pistão',
+  sticky_piston_arm_collision: 'Cabeça de pistão grudento', trapdoor: 'Alçapão de carvalho', fence_gate: 'Portão de carvalho',
+  wooden_door: 'Porta de carvalho', wooden_button: 'Botão de carvalho', wooden_pressure_plate: 'Placa de pressão de carvalho',
+  stone_button: 'Botão de pedra', stone_pressure_plate: 'Placa de pressão de pedra', light_weighted_pressure_plate: 'Placa de pressão leve',
+  heavy_weighted_pressure_plate: 'Placa de pressão pesada', wall_sign: 'Placa', standing_sign: 'Placa', wall_banner: 'Estandarte',
+  standing_banner: 'Estandarte',
   // mobs and other entities
   zombie: 'Zumbi', zombie_villager: 'Aldeão zumbi', zombie_villager_v2: 'Aldeão zumbi', husk: 'Zumbi-múmia', drowned: 'Afogado', skeleton: 'Esqueleto',
   stray: 'Esqueleto errante', wither_skeleton: 'Esqueleto wither', creeper: 'Creeper', spider: 'Aranha', cave_spider: 'Aranha das cavernas', enderman: 'Enderman',
@@ -101,6 +139,8 @@ const EXACT = {
   horse: 'Cavalo', donkey: 'Burro', mule: 'Mula', skeleton_horse: 'Cavalo esqueleto', zombie_horse: 'Cavalo zumbi', llama: 'Lhama',
   trader_llama: 'Lhama do vendedor', camel: 'Camelo', wolf: 'Lobo', cat: 'Gato', ocelot: 'Jaguatirica', fox: 'Raposa', parrot: 'Papagaio', 
   bee: 'Abelha', goat: 'Cabra', panda: 'Panda', polar_bear: 'Urso-polar', turtle: 'Tartaruga', dolphin: 'Golfinho', squid: 'Lula', glow_squid: 'Lula brilhante',
+  copper_golem: 'Golem de cobre', nautilus: 'Náutilo', sulfur_cube: 'Cubo de enxofre', cushion: 'Almofada', fireball: 'Bola de fogo',
+  small_fireball: 'Bola de fogo pequena', dragon_fireball: 'Bola de fogo do dragão',
   axolotl: 'Axolote', frog: 'Sapo', tadpole: 'Girino', allay: 'Allay', sniffer: 'Farejador', armadillo: 'Tatu', bat: 'Morcego', strider: 'Lavagante',
   xp_orb: 'Orbe de experiência', falling_block: 'Bloco caindo', boat: 'Barco',
   chest_boat: 'Barco com baú', npc: 'NPC', agent: 'Agente', fireworks_rocket: 'Foguete', thrown_trident: 'Tridente arremessado', fishing_hook: 'Anzol',
@@ -129,15 +169,17 @@ const COLORED = {
   wool: ['Lã', 1], carpet: ['Tapete', 0], concrete: ['Concreto', 0], concrete_powder: ['Concreto em pó', 0], terracotta: ['Terracota', 1],
   glazed_terracotta: ['Terracota esmaltada', 1], stained_glass: ['Vidro tingido', 0], stained_glass_pane: ['Painel de vidro tingido', 0],
   bed: ['Cama', 1], banner: ['Estandarte', 0], candle: ['Vela', 1], shulker_box: ['Caixa de shulker', 1], dye: ['Corante', 0], harness: ['Arreio', 0],
+  bundle: ['Trouxa', 1], candle_cake: ['Bolo com vela', 1], cushion: ['Almofada', 1],
 };
 
 const WOODS = {
   oak: 'carvalho', spruce: 'pinheiro', birch: 'bétula', jungle: 'selva', acacia: 'acácia', dark_oak: 'carvalho escuro', mangrove: 'mangue',
   cherry: 'cerejeira', bamboo: 'bambu', crimson: 'carmesim', warped: 'distorcido', pale_oak: 'carvalho pálido',
+  darkoak: 'carvalho escuro', poplar: 'choupo',
 };
 const WOODEN = {
   planks: 'Tábuas de', log: 'Tronco de', wood: 'Madeira de', stem: 'Caule de', hyphae: 'Hifas de', leaves: 'Folhas de', sapling: 'Muda de',
-  stairs: 'Escadas de', slab: 'Laje de', fence: 'Cerca de', fence_gate: 'Portão de', door: 'Porta de', trapdoor: 'Alçapão de', button: 'Botão de',
+  stairs: 'Escadas de', slab: 'Laje de', double_slab: 'Laje dupla de', shelf: 'Prateleira de', fence: 'Cerca de', fence_gate: 'Portão de', door: 'Porta de', trapdoor: 'Alçapão de', button: 'Botão de',
   pressure_plate: 'Placa de pressão de', sign: 'Placa de', standing_sign: 'Placa de', wall_sign: 'Placa de', hanging_sign: 'Placa suspensa de',
   boat: 'Barco de', chest_boat: 'Barco com baú de', fungus: 'Fungo', roots: 'Raízes', nylium: 'Nylium',
 };
@@ -149,10 +191,19 @@ const MATERIAL = {
   leather: 'de couro', chainmail: 'de malha', copper: 'de cobre',
 };
 const GEAR = {
-  sword: 'Espada', pickaxe: 'Picareta', axe: 'Machado', shovel: 'Pá', hoe: 'Enxada',
+  sword: 'Espada', spear: 'Lança', pickaxe: 'Picareta', axe: 'Machado', shovel: 'Pá', hoe: 'Enxada',
   helmet: 'Capacete', chestplate: 'Peitoral', leggings: 'Calças', boots: 'Botas', horse_armor: 'Armadura para cavalo',
 };
 const ORES = { coal: 'carvão', iron: 'ferro', gold: 'ouro', diamond: 'diamante', emerald: 'esmeralda', lapis: 'lápis-lazúli', redstone: 'redstone', copper: 'cobre' };
+// weathering stages and blocks of the copper family ("waxed_oxidized_cut_copper_stairs")
+const COPPER_AGE = { exposed: 'exposto', weathered: 'desgastado', oxidized: 'oxidado' };
+const COPPER = {
+  copper: 'Bloco de cobre', cut_copper: 'Cobre cortado', cut_copper_stairs: 'Escadas de cobre cortado', cut_copper_slab: 'Laje de cobre cortado',
+  double_cut_copper_slab: 'Laje dupla de cobre cortado', chiseled_copper: 'Cobre talhado', copper_grate: 'Grade de cobre', copper_bulb: 'Lâmpada de cobre',
+  copper_door: 'Porta de cobre', copper_trapdoor: 'Alçapão de cobre', copper_chest: 'Baú de cobre', copper_lantern: 'Lanterna de cobre',
+  copper_bars: 'Barras de cobre', copper_chain: 'Corrente de cobre', copper_golem_statue: 'Estátua de golem de cobre', lightning_rod: 'Para-raios',
+};
+const CORALS = { tube: 'tubo', brain: 'cérebro', bubble: 'bolha', fire: 'fogo', horn: 'chifre' };
 const SHAPES = { stairs: 'Escadas de', slab: 'Laje de', double_slab: 'Laje dupla de', wall: 'Muro de' };
 const TRIM = {
   sentry: 'sentinela', dune: 'duna', coast: 'costa', wild: 'selvagem', ward: 'guardião', eye: 'olho', vex: 'vex', tide: 'maré',
@@ -177,8 +228,22 @@ export function ptName(name) {
   if (!name) return null;
   if (EXACT[name]) return EXACT[name];
 
-  let m = name.match(/^(\w+?)_(sword|pickaxe|axe|shovel|hoe|helmet|chestplate|leggings|boots|horse_armor)$/);
+  let m = name.match(/^(\w+?)_(sword|spear|pickaxe|axe|shovel|hoe|helmet|chestplate|leggings|boots|horse_armor)$/);
   if (m && MATERIAL[m[1]]) return `${GEAR[m[2]]} ${MATERIAL[m[1]]}`;
+
+  m = name.match(/^(waxed_)?(?:(exposed|weathered|oxidized)_)?(\w+)$/);
+  if (m && COPPER[m[3]]) return [COPPER[m[3]], COPPER_AGE[m[2]], m[1] && 'encerado'].filter(Boolean).join(' ');
+
+  m = name.match(/^(dead_)?(\w+?)_coral(_block|_fan|_wall_fan)?$/);
+  if (m && CORALS[m[2]]) return `${m[3] === '_block' ? 'Bloco de coral' : m[3] ? 'Leque de coral' : 'Coral'} de ${CORALS[m[2]]}${m[1] ? ' morto' : ''}`;
+
+  // block states that get their own id ("lit_furnace", "unpowered_repeater")
+  m = name.match(/^(?:lit|unlit|powered|unpowered)_(\w+)$/);
+  if (m) return ptName(m[1]);
+  m = name.match(/^infested_(\w+)$/);
+  if (m && ptName(m[1])) return `${ptName(m[1])} (infestado)`;
+  m = name.match(/^(\w+)_bucket$/);
+  if (m && ptMobName(m[1])) return `Balde com ${lower(ptMobName(m[1]))}`;
 
   m = name.match(/^(deepslate_)?(\w+)_ore$/);
   if (m && ORES[m[2]]) return `Minério de ${ORES[m[2]]}${m[1] ? ' de ardósia' : ''}`;
@@ -194,7 +259,7 @@ export function ptName(name) {
 
   m = name.match(/^stripped_(\w+?)_(log|wood|stem|hyphae)$/);
   if (m && WOODS[m[1]]) return `${STRIPPED[m[2]]} ${WOODS[m[1]]}`;
-  m = name.match(/^(\w+?)_(planks|log|wood|stem|hyphae|leaves|sapling|stairs|slab|fence_gate|fence|door|trapdoor|button|pressure_plate|hanging_sign|standing_sign|wall_sign|sign|chest_boat|boat)$/);
+  m = name.match(/^(\w+?)_(planks|log|wood|stem|hyphae|leaves|sapling|stairs|slab|fence_gate|fence|door|trapdoor|button|pressure_plate|hanging_sign|standing_sign|wall_sign|sign|chest_boat|boat|double_slab|shelf|fungus|roots|nylium)$/);
   if (m && WOODS[m[1]]) return `${WOODEN[m[2]]} ${WOODS[m[1]]}`;
 
   m = name.match(/^(\w+?)_(double_slab|stairs|slab|wall)$/);

@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Tests: `npm test`. Single file: `node --test test/format.test.js`. Single test: `node --test --test-name-pattern="sub-chunk" "test/*.test.js"`.
   - `test/samples.test.js` runs end-to-end against every `samples/*.mcworld` (~8s each).
   - `samples/` and `*.mcworld` are gitignored (personal worlds of ~100 MB), so on a fresh clone those tests simply don't run.
-  - `npm run test:web` builds and runs `test/web/smoke.test.js`: opens the first sample world in headless Chrome over the DevTools protocol and visits every page, failing on exceptions, console errors or an error box (~40s). Skipped without a sample or Chrome (`CHROME=<path>` to override).
+  - `npm run test:web` builds and runs `test/web/smoke.test.js`: opens the first sample world (or `SAMPLE=<file name>`) in headless Chrome over the DevTools protocol and visits every page, failing on exceptions, console errors or an error box (~40s). Skipped without a sample or Chrome (`CHROME=<path>` to override).
 - Lint: `npm run lint` (ESLint 10 flat config in `eslint.config.js`, with react-hooks rules for `web/`). No formatter.
 - ESM throughout (`"type": "module"`), Node >= 22. Python is not installed on this machine.
 
@@ -63,6 +63,7 @@ Layers, bottom-up:
   - `~local_player` is the host.
   - Other players have an identity record `player_<uuid>` → `{ServerId}`.
   - Their data lives in `player_server_<uuid>`.
-- Sub-chunk palettes always carry an int32 count, even with bits=0. Data3D biome storages **do not**: with bits=0 the single int32 id follows the header directly. `bits == 127` means "copy the section below".
+- Sub-chunk palettes usually carry an int32 count even with bits=0, but some records (End, structure areas, second layers) omit it and the compound tag `0x0a` follows the header directly. Data3D biome storages never have it: with bits=0 the single int32 id follows the header directly. `bits == 127` means "copy the section below".
+- Players without a bed spawn store `SpawnY = -32768` (older saves) or `SpawnX/Y/Z = INT32_MIN` with `SpawnDimension = 3` (newer ones).
 - Block index order is XZY: `i = x<<8 | z<<4 | y`. Map item `colors` are 128×128 RGBA as a signed byte array.
 - Vanilla kill/mining statistics and achievement progress are not stored in the world. Addon stats appear as scoreboard fake players. Item names may contain `§` colour codes (`web/src/components/McText.jsx`).

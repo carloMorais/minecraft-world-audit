@@ -43,8 +43,9 @@ for (const f of worlds) {
     const rows = chunkActivity(w, blockEntities, entities);
     const bases = findBases({ rows, blockEntities, entities, players, villages: extractMisc(w, players).villages, value: true });
     assert.ok(bases.length > 0);
-    // the host's bed spawn sits in the biggest base
-    assert.ok(bases[0].spawnOf.includes('~local_player'));
+    // some player's bed spawn sits in the biggest base (not always the host's)
+    assert.ok(bases[0].spawnOf.length > 0);
+    assert.ok(players.every(p => !p.spawnPoint || p.spawnPoint.y > -32768), 'unset spawn sentinels are dropped');
     assert.ok(bases[0].containers > 0 && bases[0].value > 0);
     const lag = lagReport(rows);
     assert.ok(lag.heavy.length > 0 && lag.totals.overworld.entities > 0);

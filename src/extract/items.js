@@ -43,7 +43,12 @@ function decodeItem(it) {
 
 function decodeItems(list) {
   if (!Array.isArray(list)) return [];
-  return list.map(decodeItem).filter(Boolean);
+  // some lists (Shelf) are positional and have no Slot tag: the index is the slot
+  return list.map((it, i) => {
+    const d = decodeItem(it);
+    if (d && d.slot === undefined) d.slot = i;
+    return d;
+  }).filter(Boolean);
 }
 
 /** Flattens items (including nested container contents) for totals / searches. */

@@ -47,7 +47,9 @@ function decodeSubChunk(buf, subY, opts = {}) {
       indices = opts.countsOnly ? scratch : new Uint16Array(4096);
       pos = unpackIndices(buf, pos, bits, indices);
     }
-    const paletteSize = buf.readInt32LE(pos); pos += 4;
+    // with bits=0 some writers omit the int32 count and go straight to the compound tag (0x0a)
+    let paletteSize = 1;
+    if (bits > 0 || buf[pos] !== 0x0a) { paletteSize = buf.readInt32LE(pos); pos += 4; }
     const r = new NbtReader(buf, pos);
     const palette = new Array(paletteSize);
     for (let i = 0; i < paletteSize; i++) palette[i] = r.root().value;

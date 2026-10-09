@@ -19,7 +19,7 @@ import {
 import { DIMENSIONS } from '../../src/constants.js';
 
 const DIM_IDS = { overworld: 0, nether: 1, the_end: 2 };
-const STORAGE = new Set(['Chest', 'Barrel', 'ShulkerBox', 'Hopper', 'Dispenser', 'Dropper', 'Furnace', 'BlastFurnace', 'Smoker', 'BrewingStand', 'Crafter', 'EnderChest', 'ChiseledBookshelf', 'DecoratedPot']);
+const STORAGE = new Set(['Chest', 'Barrel', 'ShulkerBox', 'Hopper', 'Dispenser', 'Dropper', 'Furnace', 'BlastFurnace', 'Smoker', 'BrewingStand', 'Crafter', 'EnderChest', 'ChiseledBookshelf', 'DecoratedPot', 'Shelf']);
 let world = null;
 let cache = {};
 
