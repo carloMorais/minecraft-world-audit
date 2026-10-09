@@ -3,16 +3,16 @@
 // src/extract/surface.js. Mobs use a lucide shape on a coloured disc.
 import {
   Cat, Dog, Bird, Rabbit, Skull, Ghost, Bug, Turtle, PawPrint, Users, Squirrel, Snail, Droplet, Zap, Fish, Flame,
-  ShoppingBag, Sparkles, Box, Crosshair, Egg,
+  ShoppingBag, Sparkles, Box, Crosshair, Egg, Panda, Wind, Snowflake, Shield,
 } from 'lucide-react';
 import { blockColor } from '../../../src/extract/surface.js';
 import { spriteShape, spriteUrl } from './sprites.js';
 
 const MATERIAL = [
   [/netherite/, '#4b4346'], [/diamond/, '#4fd8d4'], [/emerald/, '#2ecc71'], [/gold|golden/, '#f2c14e'],
-  [/iron|chain/, '#cfd6dc'], [/copper/, '#d27d55'], [/lapis/, '#3457c9'], [/redstone/, '#e0352b'],
+  [/minecart|shears|flint_and_steel|iron|chain/, '#cfd6dc'], [/copper/, '#d27d55'], [/lapis|lapis_lazuli/, '#3457c9'], [/redstone/, '#e0352b'],
   [/amethyst/, '#a26be0'], [/quartz/, '#ece6dc'], [/leather|rabbit_hide|saddle/, '#9a5b33'], [/stone|cobble/, '#8d8d8d'],
-  [/wooden|stick|bowl|bow$|crossbow|fishing_rod/, '#a87c4a'], [/elytra|phantom/, '#8f8bb0'], [/turtle|scute/, '#4d9a42'],
+  [/boat|sign|painting|bed|campfire|wooden|stick|bowl|bow$|crossbow|fishing_rod/, '#a87c4a'], [/elytra|phantom/, '#8f8bb0'], [/turtle|scute/, '#4d9a42'],
   [/enchanted_book/, '#9b6bff'], [/book/, '#8a4b2a'], [/paper|map/, '#d9caa0'], [/experience_bottle/, '#9be15d'],
   [/potion|bottle/, '#e267b4'], [/ender_eye/, '#3f9f7f'], [/ender|chorus|shulker|purpur/, '#8f5aa7'],
   [/blaze|fire|lava|magma/, '#f08a24'], [/breeze|wind/, '#b7c6f0'], [/slime/, '#7ccf5b'], [/totem/, '#e8c45a'],
@@ -22,8 +22,8 @@ const MATERIAL = [
   [/apple|melon|beetroot|sweet_berries/, '#d8423a'], [/carrot|pumpkin/, '#f08a24'], [/potato/, '#c9a35a'],
   [/sugar|snow|glass/, '#dbe7f2'], [/flint|gunpowder/, '#6b6b6b'], [/arrow|trident/, '#b49a73'], [/firework/, '#e94e77'],
   [/heart_of_the_sea|nautilus|prismarine/, '#3fb0b8'], [/glowstone|glow_/, '#f5d36b'], [/nether_star/, '#f1f3c8'],
-  [/egg/, '#e8e3cf'], [/spawn_egg/, '#c9a27a'], [/wart|nether_brick/, '#8a2a2a'], [/echo/, '#1e5a63'],
-  [/seeds/, '#7fb24a'], [/compass|clock/, '#9aa0a6'], [/bucket|shears|flint_and_steel/, '#cfd6dc'], [/music_disc/, '#3a3a3a'],
+  [/egg/, '#e8e3cf'], [/spawn_egg/, '#c9a27a'], [/wart|nether_brick/, '#8a2a2a'], [/echo|echo_shard/, '#1e5a63'],
+  [/seeds/, '#7fb24a'], [/spyglass/, '#d27d55'], [/compass|clock/, '#9aa0a6'], [/bucket/, '#cfd6dc'], [/bell/, '#f2c14e'], [/music_disc/, '#3a3a3a'],
 ];
 
 // Names that are clearly placed blocks even when the map palette has no exact colour for them.
@@ -64,14 +64,15 @@ export function ItemIcon({ id, size = 40, enchanted = false }) {
 const MOBS = [
   [/villager|trader|witch|illager|pillager|vindicator|evoker/, Users, '#d9a066'],
   [/zombie|skeleton|stray|husk|drowned|wither|phantom|bogged/, Skull, '#7fa36b'], [/creeper/, Zap, '#5fd068'],
-  [/ghast|vex|allay|ghost/, Ghost, '#e5e5e5'], [/spider|silverfish|endermite|bee|bug/, Bug, '#7a5c45'],
+  [/ghast|vex|allay|ghost/, Ghost, '#e5e5e5'], [/spider|silverfish|endermite|bee|bug/, Bug, '#7a5c45'], [/panda/, Panda, '#e5e5e5'],
   [/cat|ocelot|siamese|scottish_fold|persian/, Cat, '#f2c14e'], [/wolf|dog|fox|shiba|husky|corgi/, Dog, '#c48a4f'],
   [/parrot|chicken|bird|falcon|eagle/, Bird, '#e2574c'], [/rabbit|guinea_pig|hamster/, Rabbit, '#c9a27a'],
   [/turtle|tortoise/, Turtle, '#4d9a42'], [/fish|cod|salmon|squid|axolotl|dolphin|tadpole/, Fish, '#4fb2d8'],
   [/squirrel|hedgehog|capybara/, Squirrel, '#a87c4a'], [/snail|slime|magma_cube/, Snail, '#7ccf5b'],
   [/dragon|ramtalon|blazefalcon|stormfalcon|t_rex/, Flame, '#a26be0'], [/horse|donkey|mule|llama|camel|cow|pig|sheep|goat|strider|hoglin/, PawPrint, '#b78b5d'],
-  [/piglin|enderman|blaze|warden|golem|guardian/, Skull, '#e2574c'], [/item$/, ShoppingBag, '#8b98a7'],
-  [/xp_orb/, Sparkles, '#9be15d'], [/minecart|boat/, Box, '#9aa5b1'], [/arrow|trident|snowball|pearl/, Crosshair, '#b49a73'],
+  [/piglin|enderman|blaze|warden|guardian/, Skull, '#e2574c'], [/iron_golem/, Shield, '#cfd6dc'], [/snow_golem/, Snowflake, '#dbe7f2'], [/breeze/, Wind, '#b7c6f0'],
+  [/item$/, ShoppingBag, '#8b98a7'],
+  [/xp_orb/, Sparkles, '#9be15d'], [/minecart|boat|shulker/, Box, '#9aa5b1'], [/arrow|trident|snowball|pearl/, Crosshair, '#b49a73'],
   [/egg/, Egg, '#e8e3cf'], [/water|bubble/, Droplet, '#4fb2d8'],
 ];
 
