@@ -6,8 +6,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Web UI (client-side only, no backend): `npm run dev` (Vite at :5173), `npm run build` (→ `web/dist`), `npm run preview`.
 - CLI: `node bin/mcx.js <command> <world.mcworld|world-folder> [args] [--json] [--raw]` (`--help` lists commands). Set `MCX_DEBUG=1` to print stack traces.
-- Tests: `npm test`. Single file: `node --test test/format.test.js`. Single test: `node --test --test-name-pattern="sub-chunk" "test/*.test.js"`. `test/samples.test.js` runs end-to-end against every `samples/*.mcworld` (~8s each).
+- Tests: `npm test`. Single file: `node --test test/format.test.js`. Single test: `node --test --test-name-pattern="sub-chunk" "test/*.test.js"`.
+  - `test/samples.test.js` runs end-to-end against every `samples/*.mcworld` (~8s each).
+  - `samples/` and `*.mcworld` are gitignored (personal worlds of ~100 MB), so on a fresh clone those tests simply don't run.
+  - `npm run test:web` builds and runs `test/web/smoke.test.js`: opens the first sample world in headless Chrome over the DevTools protocol and visits every page, failing on exceptions, console errors or an error box (~40s). Skipped without a sample or Chrome (`CHROME=<path>` to override).
+- Lint: `npm run lint` (ESLint 10 flat config in `eslint.config.js`, with react-hooks rules for `web/`). No formatter.
 - ESM throughout (`"type": "module"`), Node >= 22. Python is not installed on this machine.
+
+## Deploy and git
+
+- The site is static and hosted on Vercel (https://minecraft-world-audit.vercel.app). `vercel.json` sets the build to `npm run build` with output in `web/dist`.
+- **Every push to `main` on GitHub (`carloMorais/minecraft-world-audit`) deploys to production.** Ask the user whether to push to `main` or open a branch/PR; Vercel creates preview URLs for PRs.
+- The user's global git config has `push.default = nothing`, so plain `git push` fails. Use `git push origin <branch>`.
+- User-facing text (UI and CLI output) is in Portuguese (pt-BR). Code and comments are in English.
 
 ## Architecture
 
@@ -32,11 +43,16 @@ Layers, bottom-up:
 4. **Front ends.**
    - `src/cli.js` (Portuguese text output).
    - `web/`: React app.
-     - `web/src/worker.js` owns the `World` inside a Web Worker and exposes RPC methods.
+     - `web/src/worker.js` owns the `World` inside a Web Worker and exposes RPC methods. Extractions are memoised per opened world.
      - `web/src/client.js` holds `call()` and the caching hook `useQuery(method, args)`.
-     - Pages live in `web/src/pages/`.
+     - To add a new data view: add a method to `methods` in `worker.js`, then read it with `useQuery('name', args)` in a page. The worker passes results through `toPlain`, which strips `raw` and converts BigInt. The exceptions are typed-array results such as `surface`, `icon` and `mapItem`, which are sent as transferables.
+     - Pages live in `web/src/pages/` and are routed by URL hash in `App.jsx`. Page state lives in hash params (`#items?q=elytra`, `#map?dim=nether&x=10&z=-4&label=…`): `go(page, params)` navigates, `useHashParam(key, fallback)` in `web/src/route.js` mirrors a filter into the URL with `replaceState`. Coordinates link to the map through `CoordLink` (`components/ui.jsx`); sortable tables use `useSort`.
+     - Container labels, slot layouts and colours live in `web/src/containers.js`. The Containers page and the map's containers layer both use them; the map layer gets its data from the worker's `storage` method, which also returns empty and never-opened loot containers.
+     - `components/ReloadGuard.jsx` intercepts F5/Ctrl+R with a custom dialog while a world is open. There is no persistence: a reload means re-importing the file. The user decided the site must **never** store anything on the user's machine (no IndexedDB/localStorage/caches), so don't propose it; state that must survive navigation goes in the URL.
      - The surface map comes back as transferable RGBA and is drawn on a canvas.
-     - Item and mob icons are lucide shapes plus a material colour (`components/icons.jsx`). No game textures are shipped.
+     - Item icons are 16×16 pixel sprites drawn as text templates in `components/sprites.js`, tinted by material in `components/icons.jsx` (blocks become an isometric cube in the map palette). Mob icons are lucide shapes on a coloured disc. No game textures are shipped.
+     - Display names are pt-BR: `prettyName(id)` translates vanilla items/blocks via `web/src/names.js` (exact table plus family rules) and `mobName(id)` does the same for entities (ids like `chicken` differ between mob and item). Unknown ids fall back to English title case; add-on ids keep their namespace.
+     - The worker's `open` only reads level, the DB and players; entities and block entities load on first use, so the Overview renders the hero and players first.
 
 ## Format gotchas (verified against the sample worlds)
 
