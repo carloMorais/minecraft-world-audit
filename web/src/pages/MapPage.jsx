@@ -4,7 +4,7 @@ import { useQuery } from '../client.js';
 import { Tabs, Loading, ErrorBox, PageHeader } from '../components/ui.jsx';
 import { Slot, TooltipScope } from '../components/inventory.jsx';
 import McText, { stripCodes } from '../components/McText.jsx';
-import { fmt, DIM_LABEL, DIM_COLOR, prettyName, sortDims } from '../format.js';
+import { fmt, DIM_LABEL, DIM_COLOR, prettyName, sortDims, playerNames } from '../format.js';
 import { CONTAINER_LABEL, CONTAINER_COLOR, containerItems } from '../containers.js';
 
 const LAYERS = [
@@ -49,8 +49,9 @@ function useMarkers(dim, cfilter) {
   return useMemo(() => {
     const m = [];
     const P = players.data || [];
-    P.forEach((p, i) => {
-      const name = p.role.startsWith('local') ? 'Host' : `Jogador ${i}`;
+    const names = playerNames(P);
+    P.forEach(p => {
+      const name = names.get(p.key);
       if (p.dimension === dim && p.position) m.push({ layer: 'players', x: p.position[0], z: p.position[2], label: name, detail: `Y ${Math.round(p.position[1])} · XP ${p.xp.level}` });
       if (p.spawnPoint && p.spawnPoint.dimension === dim) m.push({ layer: 'spawns', x: p.spawnPoint.x, z: p.spawnPoint.z, label: `Spawn de ${name}`, detail: `Y ${p.spawnPoint.y}` });
       if (p.lastDeath && p.hasDiedBefore && p.lastDeath.dimension === dim) m.push({ layer: 'deaths', x: p.lastDeath.x, z: p.lastDeath.z, label: `Última morte: ${name}`, detail: `Y ${p.lastDeath.y}` });
@@ -86,10 +87,13 @@ function useMarkers(dim, cfilter) {
   }, [players.data, misc.data, summary.data, storage.data, dim, cfilter]);
 }
 
-export default function MapPage() {
+export default function MapPage({ nav }) {
   const summary = useQuery('summary');
   const dims = summary.data ? sortDims(Object.keys(summary.data.coverage)) : ['overworld'];
-  const [dim, setDim] = useState('overworld');
+  const [dim, setDim] = useState(nav?.focus?.dim || 'overworld');
+  // A place another page asked to show ("ver no mapa"): centred once the terrain is ready, then kept as a pin.
+  const [focus, setFocus] = useState(nav?.focus || null);
+  const pendingFocus = useRef(nav?.focus || null);
   const surface = useQuery('surface', { dim });
   const [cfilter, setCfilter] = useState(DEFAULT_CFILTER);
   const markers = useMarkers(dim, cfilter);
@@ -103,6 +107,7 @@ export default function MapPage() {
   const [selected, setSelected] = useState(null);
   const [, force] = useState(0);
   const drag = useRef(null);
+  const pointers = useRef(new Map());
 
   const draw = useCallback(() => {
     const c = canvasRef.current;
@@ -156,7 +161,7 @@ export default function MapPage() {
         ctx.fillStyle = color;
         ctx.fill();
       }
-      if ((mk.square ? scale >= 3 : scale >= 1) || mk.layer === 'players' || mk === selected) {
+      if ((mk.square ? scale >= 8 : scale >= 1) || mk.layer === 'players' || mk === selected) {
         ctx.font = '600 12px Inter, sans-serif';
         const tw = ctx.measureText(mk.label).width;
         ctx.fillStyle = 'rgba(8,10,14,0.78)';
@@ -165,7 +170,26 @@ export default function MapPage() {
         ctx.fillText(mk.label, x + 16, y + 4);
       }
     }
-  }, [surface.data, markers, layers, selected]);
+    if (focus && focus.dim === dim) {
+      const x = (focus.x - ox) * scale, y = (focus.z - oz) * scale;
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = 'rgba(8,10,14,0.9)';
+      ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 22, y); ctx.lineTo(x - 9, y); ctx.moveTo(x + 9, y); ctx.lineTo(x + 22, y);
+      ctx.moveTo(x, y - 22); ctx.lineTo(x, y - 9); ctx.moveTo(x, y + 9); ctx.lineTo(x, y + 22); ctx.stroke();
+      if (focus.label) {
+        ctx.font = '700 12px Inter, sans-serif';
+        const tw = ctx.measureText(focus.label).width;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - tw / 2 - 6, y - 44, tw + 12, 19);
+        ctx.fillStyle = '#0a0d12';
+        ctx.fillText(focus.label, x - tw / 2, y - 30);
+      }
+    }
+  }, [surface.data, markers, layers, selected, focus, dim]);
 
   const fit = useCallback(() => {
     const s = surface.data, c = wrapRef.current;
@@ -190,10 +214,11 @@ export default function MapPage() {
     createImageBitmap(new ImageData(s.rgba, s.width, s.height)).then(b => {
       if (!alive) return;
       bitmapRef.current = b;
-      fit();
+      const pf = pendingFocus.current;
+      if (pf && pf.dim === dim) { pendingFocus.current = null; centerOn(pf.x, pf.z, 4); } else fit();
     });
     return () => { alive = false; };
-  }, [surface.data, fit]);
+  }, [surface.data, fit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // canvas sizing
   useEffect(() => {
@@ -249,21 +274,56 @@ export default function MapPage() {
     return best;
   };
 
-  const onMouseDown = e => { drag.current = { x: e.clientX, y: e.clientY, ox: view.current.ox, oz: view.current.oz, moved: false }; };
-  const onMouseMove = e => {
+  const pinchDistance = () => { const [a, b] = [...pointers.current.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  const onPointerDown = e => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 2) { drag.current = { pinch: pinchDistance(), moved: true }; return; }
+    drag.current = { x: e.clientX, y: e.clientY, ox: view.current.ox, oz: view.current.oz, moved: false };
+  };
+  const onPointerMove = e => {
     const p = toWorld(e);
-    setHover({ x: Math.floor(p.x), z: Math.floor(p.z), marker: hitMarker(p) });
+    if (e.pointerType === 'mouse') setHover({ x: Math.floor(p.x), z: Math.floor(p.z), marker: hitMarker(p) });
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const d = drag.current;
     if (!d) return;
+    if (d.pinch) {
+      const dist = pinchDistance();
+      const [a, b] = [...pointers.current.values()];
+      const r = canvasRef.current.getBoundingClientRect();
+      zoomAt(dist / d.pinch, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+      d.pinch = dist;
+      return;
+    }
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
     if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true;
     view.current = { ...view.current, ox: d.ox - dx / view.current.scale, oz: d.oz - dy / view.current.scale };
     draw();
   };
-  const onMouseUp = e => {
+  const onPointerUp = e => {
+    pointers.current.delete(e.pointerId);
     const d = drag.current;
+    if (d?.pinch) {
+      // keep panning smoothly with the finger that stays down
+      const rest = [...pointers.current.values()][0];
+      drag.current = rest ? { x: rest.x, y: rest.y, ox: view.current.ox, oz: view.current.oz, moved: true } : null;
+      return;
+    }
     drag.current = null;
-    if (d && !d.moved) setSelected(hitMarker(toWorld(e)));
+    if (d && !d.moved) {
+      const hit = hitMarker(toWorld(e));
+      setSelected(hit);
+      if (e.pointerType !== 'mouse' && hit) setHover({ x: Math.floor(hit.x), z: Math.floor(hit.z), marker: hit });
+    }
+  };
+  const onKeyDown = e => {
+    const c = wrapRef.current, step = 80 / view.current.scale;
+    const pan = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+    if (pan) { e.preventDefault(); view.current = { ...view.current, ox: view.current.ox + pan[0], oz: view.current.oz + pan[1] }; force(n => n + 1); return; }
+    if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomAt(1.5, c.clientWidth / 2, c.clientHeight / 2); }
+    else if (e.key === '-') { e.preventDefault(); zoomAt(1 / 1.5, c.clientWidth / 2, c.clientHeight / 2); }
+    else if (e.key === '0') { e.preventDefault(); fit(); }
   };
 
   const download = () => {
@@ -286,37 +346,52 @@ export default function MapPage() {
     <div className="page page-map">
       <PageHeader
         title="Mapa do mundo"
-        subtitle="Vista aérea gerada a partir dos blocos salvos. Arraste para mover, use a roda do mouse para zoom e clique nos marcadores."
-        actions={<Tabs value={dim} onChange={d => { setDim(d); setSelected(null); }} items={dims.map(d => ({ value: d, label: DIM_LABEL[d], color: DIM_COLOR[d] }))} />}
+        subtitle="Vista aérea gerada a partir dos blocos salvos. Clique nos marcadores para ver detalhes."
+        actions={<Tabs label="Dimensão" value={dim} onChange={d => { setDim(d); setSelected(null); }} items={dims.map(d => ({ value: d, label: DIM_LABEL[d], color: DIM_COLOR[d] }))} />}
       />
       <div className="map-layout">
         <div className="map-wrap" ref={wrapRef}>
           <canvas
             ref={canvasRef}
+            tabIndex={0}
+            role="application"
+            aria-label={`Mapa de ${DIM_LABEL[dim]}. Setas movem, + e - mudam o zoom, 0 mostra tudo.`}
             onWheel={onWheel}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            onMouseLeave={() => { drag.current = null; setHover(null); }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onPointerLeave={e => { if (e.pointerType === 'mouse') setHover(null); }}
+            onKeyDown={onKeyDown}
             style={{ cursor: hover?.marker ? 'pointer' : drag.current ? 'grabbing' : 'grab' }}
           />
           {surface.loading && <div className="map-overlay"><Loading text="Renderizando o terreno…" sub="Lendo cada coluna de blocos. Pode levar alguns segundos." /></div>}
           {surface.error && <div className="map-overlay"><ErrorBox error={surface.error} /></div>}
           {surface.data === null && <div className="map-overlay"><ErrorBox error={new Error('Esta dimensão não tem chunks gerados.')} /></div>}
           <div className="map-toolbar">
-            <button type="button" className="icon-btn" title="Aproximar" onClick={() => zoomAt(1.5, wrapRef.current.clientWidth / 2, wrapRef.current.clientHeight / 2)}><ZoomIn size={18} /></button>
-            <button type="button" className="icon-btn" title="Afastar" onClick={() => zoomAt(1 / 1.5, wrapRef.current.clientWidth / 2, wrapRef.current.clientHeight / 2)}><ZoomOut size={18} /></button>
-            <button type="button" className="icon-btn" title="Ver tudo" onClick={fit}><Maximize size={18} /></button>
-            {host && <button type="button" className="icon-btn" title="Centralizar no jogador" onClick={() => centerOn(host.x, host.z, 3)}><LocateFixed size={18} /></button>}
-            <button type="button" className="icon-btn" title="Baixar PNG" onClick={download}><Download size={18} /></button>
+            <button type="button" className="icon-btn" title="Aproximar (+)" aria-label="Aproximar" onClick={() => zoomAt(1.5, wrapRef.current.clientWidth / 2, wrapRef.current.clientHeight / 2)}><ZoomIn size={18} /></button>
+            <button type="button" className="icon-btn" title="Afastar (−)" aria-label="Afastar" onClick={() => zoomAt(1 / 1.5, wrapRef.current.clientWidth / 2, wrapRef.current.clientHeight / 2)}><ZoomOut size={18} /></button>
+            <button type="button" className="icon-btn" title="Ver o mundo inteiro (0)" aria-label="Ver o mundo inteiro" onClick={fit}><Maximize size={18} /></button>
+            {host && <button type="button" className="icon-btn" title="Centralizar no Host" aria-label="Centralizar no Host" onClick={() => centerOn(host.x, host.z, 3)}><LocateFixed size={18} /></button>}
+            <button type="button" className="icon-btn" title="Baixar o mapa em PNG" aria-label="Baixar o mapa em PNG" onClick={download}><Download size={18} /></button>
           </div>
           <div className="map-hud">
-            {hover ? <><Crosshair size={13} /> X {fmt(hover.x)} · Z {fmt(hover.z)}</> : 'Passe o mouse sobre o mapa'}
+            {hover ? <><Crosshair size={13} /> X {fmt(hover.x)} · Z {fmt(hover.z)}</> : <><span className="hud-hint pointer-only">Arraste para mover · roda do mouse para zoom</span><span className="hud-hint touch-only">Arraste para mover · pinça para zoom</span></>}
             <span className="sep" /> zoom {view.current.scale >= 1 ? `${view.current.scale.toFixed(1)}×` : `1:${Math.round(1 / view.current.scale)}`}
             {surface.data && <><span className="sep" />{fmt(surface.data.chunks)} chunks</>}
           </div>
         </div>
         <aside className="map-side">
+          {focus && (
+            <div className="focus-chip">
+              <Crosshair size={14} />
+              <div><strong>{focus.label || 'Local marcado'}</strong><small>{DIM_LABEL[focus.dim]} · X {Math.floor(focus.x)}{focus.y != null ? ` · Y ${Math.round(focus.y)}` : ''} · Z {Math.floor(focus.z)}</small></div>
+              {focus.dim === dim
+                ? <button type="button" className="btn btn-sm" onClick={() => centerOn(focus.x, focus.z, 4)}>Ir</button>
+                : <button type="button" className="btn btn-sm" onClick={() => { pendingFocus.current = focus; setDim(focus.dim); }}>Ir</button>}
+              <button type="button" className="icon-x" onClick={() => setFocus(null)} aria-label="Remover marcação"><X size={13} /></button>
+            </div>
+          )}
           <h4>Camadas</h4>
           {LAYERS.map(l => {
             const n = markers.filter(m => m.layer === l.id).length;
@@ -346,7 +421,10 @@ export default function MapPage() {
                   </TooltipScope>
                 )}
                 {items.length > 27 && <small>+{items.length - 27} slots</small>}
-                <button type="button" className="btn btn-sm" onClick={() => centerOn(mk.x, mk.z, 4)}>Aproximar aqui</button>
+                <div className="marker-actions">
+                  <button type="button" className="btn btn-sm" onClick={() => centerOn(mk.x, mk.z, 4)}>Aproximar aqui</button>
+                  {selected && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setSelected(null)}>Fechar</button>}
+                </div>
               </div>
             );
           })()}
@@ -359,12 +437,12 @@ export default function MapPage() {
               shown={markers.filter(m => m.layer === 'containers').length}
             />
           )}
-          <h4>Lista</h4>
+          <h4>Lista <span className="muted">{fmt(markers.filter(m => layers.has(m.layer)).length)}</span></h4>
           <div className="marker-list">
             {markers.filter(m => layers.has(m.layer)).slice(0, 400).map((m, i) => {
               const L = LAYERS.find(l => l.id === m.layer);
               return (
-                <button type="button" key={i} onClick={() => { setSelected(m); centerOn(m.x, m.z, 3); }}>
+                <button type="button" key={i} className={m === selected ? 'active' : ''} onClick={() => { setSelected(m); centerOn(m.x, m.z, 3); }}>
                   <span className={m.square ? 'sq' : 'dot'} style={{ background: m.color || L.color }} /> {m.label}
                   <small>{Math.round(m.x)}, {Math.round(m.z)}</small>
                 </button>

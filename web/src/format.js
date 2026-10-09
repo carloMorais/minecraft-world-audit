@@ -26,6 +26,31 @@ const DIM_ORDER = ['overworld', 'nether', 'the_end'];
 export const sortDims = list => [...list].sort((a, b) => (DIM_ORDER.indexOf(a) + 1 || 9) - (DIM_ORDER.indexOf(b) + 1 || 9));
 
 export const DIM_COLOR = { overworld: '#5fd068', nether: '#e2574c', the_end: '#c9a5ff', unknown: '#8b98a7' };
+/** Dimensions that have a rendered surface map. */
+export const MAP_DIMS = new Set(['overworld', 'nether', 'the_end']);
+
+export const isHost = p => p.role.startsWith('local');
+
+/** Display names shared by every page: "Host" for the local player, "Jogador N" for the others in save order. */
+export function playerNames(players) {
+  const names = new Map();
+  let n = 0;
+  for (const p of players || []) names.set(p.key, isHost(p) ? 'Host' : `Jogador ${++n}`);
+  return names;
+}
+
+const BLOCK_ENTITY_LABEL = {
+  SculkSensor: 'Sensor de sculk', CalibratedSculkSensor: 'Sensor de sculk calibrado', SculkCatalyst: 'Catalisador de sculk',
+  SculkShrieker: 'Guinchador de sculk', BrushableBlock: 'Bloco escovável', MobSpawner: 'Gerador de mobs', TrialSpawner: 'Gerador de desafios',
+  Vault: 'Cofre', Bed: 'Cama', Sign: 'Placa', HangingSign: 'Placa suspensa', Banner: 'Estandarte', Skull: 'Cabeça', Beacon: 'Sinalizador',
+  EnchantTable: 'Mesa de encantamento', Bell: 'Sino', Conduit: 'Conduíte', EndPortal: 'Portal do End', EndGateway: 'Portal de passagem',
+  Cauldron: 'Caldeirão', Beehive: 'Colmeia', BeeNest: 'Ninho de abelhas', Comparator: 'Comparador', DaylightDetector: 'Sensor de luz solar',
+  PistonArm: 'Pistão', MovingBlock: 'Bloco em movimento', CommandBlock: 'Bloco de comando', StructureBlock: 'Bloco de estrutura',
+  Lodestone: 'Magnetita', Music: 'Bloco musical', NetherReactor: 'Reator do Nether', Jigsaw: 'Bloco quebra-cabeça', CreakingHeart: 'Coração de rangedor',
+};
+
+/** Block entity id → pt-BR label ("SculkSensor" → "Sensor de sculk"); unknown ids are split on camel case. */
+export const blockEntityLabel = (id, extra = {}) => extra[id] || BLOCK_ENTITY_LABEL[id] || id.replace(/([a-z])([A-Z])/g, '$1 $2');
 
 export const GAMEMODE_LABEL = { survival: 'Sobrevivência', creative: 'Criativo', adventure: 'Aventura', spectator: 'Espectador', default: 'Padrão do mundo' };
 export const DIFFICULTY_LABEL = { peaceful: 'Pacífico', easy: 'Fácil', normal: 'Normal', hard: 'Difícil' };

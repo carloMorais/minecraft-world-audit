@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { PawPrint, Heart, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useQuery } from '../client.js';
-import { Panel, Async, PageHeader, BarList, Tabs, SearchInput, Badge, Empty } from '../components/ui.jsx';
+import { Panel, Async, PageHeader, BarList, Tabs, SearchInput, Badge, Empty, CoordLink } from '../components/ui.jsx';
 import { MobIcon } from '../components/icons.jsx';
 import McText from '../components/McText.jsx';
 import { TooltipScope, Slot } from '../components/inventory.jsx';
-import { fmt, pos, prettyName, DIM_LABEL, DIM_COLOR, sortDims } from '../format.js';
+import { fmt, prettyName, DIM_LABEL, DIM_COLOR, sortDims, playerNames } from '../format.js';
 
 const HOSTILE = /zombie|skeleton|creeper|spider|witch|pillager|vindicator|evoker|ravager|phantom|drowned|husk|stray|blaze|ghast|magma|slime|piglin_brute|hoglin|zoglin|wither|guardian|shulker|enderman|endermite|silverfish|vex|warden|breeze|bogged|creaking/;
 const NOISE = /^minecraft:(item|xp_orb|arrow|falling_block|fireworks_rocket|thrown_trident|snowball|egg|ender_pearl|splash_potion|wind_charge_projectile|fishing_hook|painting|leash_knot|lightning_bolt|tnt)$/;
@@ -36,12 +36,12 @@ function Trades({ trades, tip }) {
   );
 }
 
-function EntityRow({ e, ownerNames, tip }) {
+function EntityRow({ e, ownerNames, tip, go }) {
   const [open, setOpen] = useState(false);
   const expandable = e.trades?.length || e.inventory?.length || e.equipment?.length || e.item;
   return (
     <>
-      <tr className={expandable ? 'clickable' : ''} onClick={() => expandable && setOpen(!open)}>
+      <tr className={expandable ? 'clickable' : ''} onClick={() => expandable && setOpen(!open)} aria-expanded={expandable ? open : undefined}>
         <td className="cell-icon">{expandable ? (open ? <ChevronDown size={14} /> : <ChevronRight size={14} />) : null}<MobIcon id={e.type} size={26} /></td>
         <td>
           <strong>{e.customName ? <McText text={e.customName} /> : prettyName(e.type)}</strong>
@@ -50,14 +50,14 @@ function EntityRow({ e, ownerNames, tip }) {
             {e.profession && <Badge tone="gold">{e.profession}</Badge>}
             {e.tamed && <Badge tone="green">domesticado</Badge>}
             {e.baby && <Badge>filhote</Badge>}
-            {e.orphan && <Badge title="Nenhum chunk referencia esta entidade; o jogo não a carrega mais">órfã</Badge>}
+
             {e.item && <Badge>{e.item.count}× {prettyName(e.item.item)}</Badge>}
             {e.ownerId && <Badge tone="blue">dono: {ownerNames[e.ownerId] || e.ownerId}</Badge>}
           </div>
         </td>
-        <td><span className="dot" style={{ background: DIM_COLOR[e.dimension] }} /> {DIM_LABEL[e.dimension] || e.dimension}</td>
-        <td className="mono">{pos(e.position)}</td>
-        <td>{e.health ? <span className="hp"><Heart size={12} /> {e.health.current}/{e.health.max}</span> : '—'}</td>
+        <td className="nowrap" title={e.orphan ? 'Nenhum chunk referencia esta entidade; o jogo não a carrega mais' : undefined}><span className="dot" style={{ background: DIM_COLOR[e.dimension] }} /> {e.orphan ? 'Órfã' : DIM_LABEL[e.dimension] || e.dimension}</td>
+        <td className="nowrap"><CoordLink go={go} dim={e.dimension} position={e.position} label={e.customName ? e.customName.replace(/§./g, '') : prettyName(e.type)} /></td>
+        <td className="nowrap">{e.health ? <span className="hp"><Heart size={12} /> {e.health.current}/{e.health.max}</span> : '—'}</td>
       </tr>
       {open && (
         <tr className="expand-row">
@@ -76,18 +76,19 @@ function EntityRow({ e, ownerNames, tip }) {
   );
 }
 
-export default function Entities() {
+export default function Entities({ nav, go }) {
   const state = useQuery('entities');
   const players = useQuery('players');
-  const [cat, setCat] = useState('mobs');
+  const [cat, setCat] = useState(nav?.type && NOISE.test(nav.type) ? 'all' : 'mobs');
   const [dim, setDim] = useState('all');
   const [q, setQ] = useState('');
-  const [type, setType] = useState(null);
+  const [type, setType] = useState(nav?.type || null);
   const [limit, setLimit] = useState(150);
 
   const ownerNames = useMemo(() => {
     const o = {};
-    (players.data || []).forEach((p, i) => { if (p.uniqueId) o[p.uniqueId] = p.role.startsWith('local') ? 'Host' : `Jogador ${i}`; });
+    const names = playerNames(players.data);
+    for (const p of players.data || []) if (p.uniqueId) o[p.uniqueId] = names.get(p.key);
     return o;
   }, [players.data]);
 
@@ -106,16 +107,16 @@ export default function Entities() {
           return (
             <>
               <div className="toolbar">
-                <Tabs value={cat} onChange={v => { setCat(v); setType(null); }} items={CATS.map(c => ({ value: c.value, label: c.label, count: all.filter(c.test).length }))} />
+                <Tabs label="Categoria" value={cat} onChange={v => { setCat(v); setType(null); }} items={CATS.map(c => ({ value: c.value, label: c.label, count: all.filter(c.test).length }))} />
               </div>
               <div className="toolbar">
-                <Tabs value={dim} onChange={setDim} items={[{ value: 'all', label: 'Todas as dimensões' }, ...dims.map(d => ({ value: d, label: DIM_LABEL[d] || d, color: DIM_COLOR[d] }))]} />
+                <Tabs label="Dimensão" value={dim} onChange={setDim} items={[{ value: 'all', label: 'Todas as dimensões' }, ...dims.map(d => ({ value: d, label: d === 'unknown' ? 'Órfãs' : DIM_LABEL[d] || d, color: DIM_COLOR[d] }))]} />
                 <SearchInput value={q} onChange={setQ} placeholder="Filtrar por tipo, nome ou profissão…" />
               </div>
               <div className="grid-side">
                 <Panel title={`Por tipo (${Object.keys(byType).length})`} icon={PawPrint}>
                   <BarList
-                    rows={Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([t, n]) => ({ key: t, label: prettyName(t), value: n, icon: <MobIcon id={t} size={22} />, color: t === type ? 'var(--gold)' : 'var(--purple)' }))}
+                    rows={Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([t, n]) => ({ key: t, label: prettyName(t), value: n, icon: <MobIcon id={t} size={22} />, color: t === type ? 'var(--gold)' : 'var(--purple)', active: t === type }))}
                     limit={25}
                     format={fmt}
                     onSelect={r => setType(type === r.key ? null : r.key)}
@@ -123,17 +124,21 @@ export default function Entities() {
                 </Panel>
                 <Panel
                   title={`${fmt(list.length)} entidades`}
-                  actions={type && <button type="button" className="chip" onClick={() => setType(null)}>{prettyName(type)} <X size={12} /></button>}
+                  actions={type && <button type="button" className="chip chip-active" onClick={() => setType(null)} title="Remover filtro">{prettyName(type)} <X size={12} /></button>}
                   pad={false}
                 >
-                  {list.length === 0 ? <Empty /> : (
+                  {list.length === 0 ? (
+                    <Empty text="Nenhuma entidade com esses filtros">
+                      {(q || type || dim !== 'all') && <button type="button" className="link-btn" onClick={() => { setQ(''); setType(null); setDim('all'); }}>Limpar filtros</button>}
+                    </Empty>
+                  ) : (
                     <TooltipScope>
                       {tip => (
                         <div className="table-wrap">
                           <table className="table">
                             <thead><tr><th /><th>Entidade</th><th>Dimensão</th><th>Posição</th><th>Vida</th></tr></thead>
                             <tbody>
-                              {list.slice(0, limit).map((e, i) => <EntityRow key={`${e.uniqueId}-${i}`} e={e} ownerNames={ownerNames} tip={tip} />)}
+                              {list.slice(0, limit).map((e, i) => <EntityRow key={`${e.uniqueId}-${i}`} e={e} ownerNames={ownerNames} tip={tip} go={go} />)}
                             </tbody>
                           </table>
                           {list.length > limit && <button type="button" className="btn btn-block" onClick={() => setLimit(limit + 300)}>Mostrar mais ({fmt(list.length - limit)} restantes)</button>}

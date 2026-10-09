@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Archive, MapPin } from 'lucide-react';
+import { Archive } from 'lucide-react';
 import { useQuery } from '../client.js';
-import { Async, PageHeader, Tabs, SearchInput, Empty, Badge } from '../components/ui.jsx';
+import { Async, PageHeader, Tabs, SearchInput, Empty, Badge, CoordLink } from '../components/ui.jsx';
 import { SlotGrid, Slot, TooltipScope } from '../components/inventory.jsx';
 import { fmt, prettyName, DIM_LABEL, DIM_COLOR } from '../format.js';
 import McText from '../components/McText.jsx';
 import { CONTAINER_LAYOUT as LAYOUT, CONTAINER_LABEL as LABEL } from '../containers.js';
 
-function ContainerCard({ b, tip }) {
+function ContainerCard({ b, tip, go }) {
   const items = [...(b.items || []), ...[b.item, b.record, b.book].filter(Boolean)];
   const [slots, cols] = LAYOUT[b.id] || [Math.max(9, Math.ceil(items.length / 9) * 9), 9];
   const total = items.reduce((a, it) => a + it.count, 0);
@@ -22,7 +22,7 @@ function ContainerCard({ b, tip }) {
       </header>
       <div className="container-loc">
         <span className="dot" style={{ background: DIM_COLOR[b.dimension] }} /> {DIM_LABEL[b.dimension]}
-        <MapPin size={12} /> <code>{b.position.join(', ')}</code>
+        <CoordLink go={go} dim={b.dimension} position={b.position} label={b.customName ? b.customName.replace(/§./g, '') : LABEL[b.id] || b.id} />
         {b.pairedWith && <Badge>baú duplo</Badge>}
       </div>
       {slots === 1 ? <div className="slot-row">{items.map((it, i) => <Slot key={i} it={it} size={44} tipHandlers={tip} />)}</div>
@@ -31,7 +31,7 @@ function ContainerCard({ b, tip }) {
   );
 }
 
-export default function Containers() {
+export default function Containers({ go }) {
   const state = useQuery('containers');
   const [type, setType] = useState('all');
   const [q, setQ] = useState('');
@@ -52,18 +52,22 @@ export default function Containers() {
           return (
             <>
               <div className="toolbar">
-                <Tabs value={type} onChange={setType} items={[{ value: 'all', label: 'Todos', count: all.length }, ...Object.entries(types).sort((a, b) => b[1] - a[1]).map(([t, n]) => ({ value: t, label: LABEL[t] || t, count: n }))]} />
+                <Tabs label="Tipo de container" value={type} onChange={setType} items={[{ value: 'all', label: 'Todos', count: all.length }, ...Object.entries(types).sort((a, b) => b[1] - a[1]).map(([t, n]) => ({ value: t, label: LABEL[t] || t, count: n }))]} />
               </div>
               <div className="toolbar">
                 <SearchInput value={q} onChange={setQ} placeholder="Procurar containers que tenham… (ex.: diamond, elytra, totem)" />
-                <span className="muted">{fmt(list.length)} containers</span>
+                <span className="muted nowrap">{fmt(list.length)} {list.length === 1 ? 'container' : 'containers'}</span>
               </div>
-              {list.length === 0 ? <Empty text="Nenhum container encontrado" /> : (
+              {list.length === 0 ? (
+                <Empty text={q ? `Nenhum container com “${q}”` : 'Nenhum container encontrado'}>
+                  {(q || type !== 'all') && <button type="button" className="link-btn" onClick={() => { setQ(''); setType('all'); }}>Limpar filtros</button>}
+                </Empty>
+              ) : (
                 <TooltipScope>
                   {tip => (
                     <>
                       <div className="container-grid">
-                        {list.slice(0, limit).map((b, i) => <ContainerCard key={`${b.position}-${i}`} b={b} tip={tip} />)}
+                        {list.slice(0, limit).map((b, i) => <ContainerCard key={`${b.position}-${i}`} b={b} tip={tip} go={go} />)}
                       </div>
                       {list.length > limit && <button type="button" className="btn btn-block" onClick={() => setLimit(limit + 60)}>Mostrar mais ({fmt(list.length - limit)})</button>}
                     </>

@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
-import { UploadCloud, FolderOpen, ShieldCheck, Cpu, Map as MapIcon, Backpack, Check, Loader2, AlertTriangle } from 'lucide-react';
+import {
+  UploadCloud, FolderOpen, ShieldCheck, Cpu, Map as MapIcon, Backpack, Check, Loader2, AlertTriangle, HelpCircle, ChevronDown,
+} from 'lucide-react';
 import { onProgress } from '../client.js';
 
 const STEPS = [
@@ -12,34 +14,71 @@ const STEPS = [
   ['blockEntities', 'Carregando baús e blocos especiais'],
 ];
 
+const ACCEPTED = /\.(mcworld|zip)$/i;
+
+/** Turns a <input webkitdirectory> FileList into the worker's { files, name } input. */
+export function dirInput(list) {
+  const files = [...(list || [])];
+  if (!files.length) return null;
+  const root = files[0].webkitRelativePath.split('/')[0];
+  return { files: files.map(f => ({ path: f.webkitRelativePath.slice(root.length + 1), file: f })), name: root };
+}
+
 export default function Landing({ onOpen, busy, error }) {
   const fileRef = useRef();
   const dirRef = useRef();
   const [drag, setDrag] = useState(false);
   const [progress, setProgress] = useState({});
+  const [localError, setLocalError] = useState(null);
 
   useEffect(() => onProgress(p => setProgress(prev => ({ ...prev, current: p.step, [p.step]: p.detail || true }))), []);
   useEffect(() => { if (busy) setProgress({}); }, [busy]);
 
-  const pickFile = f => f && onOpen({ file: f });
-  const pickDir = list => {
-    const files = [...list];
-    if (!files.length) return;
-    const root = files[0].webkitRelativePath.split('/')[0];
-    onOpen({ files: files.map(f => ({ path: f.webkitRelativePath.slice(root.length + 1), file: f })), name: root });
+  const pickFile = f => {
+    if (!f) return;
+    if (!ACCEPTED.test(f.name)) {
+      setLocalError(`"${f.name}" não é um mundo exportado. Escolha um arquivo .mcworld (ou use "Abrir pasta do mundo").`);
+      return;
+    }
+    setLocalError(null);
+    onOpen({ file: f });
   };
+  const pickDir = list => { const input = dirInput(list); if (input) onOpen(input); };
 
-  const onDrop = e => {
-    e.preventDefault();
-    setDrag(false);
-    const f = e.dataTransfer.files?.[0];
-    if (f) pickFile(f);
-  };
+  // Accept drops anywhere on the page: a drop that misses the dropzone would otherwise make the
+  // browser navigate to the file and leave the app.
+  useEffect(() => {
+    if (busy) return undefined;
+    let depth = 0;
+    const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+    const enter = e => { if (!hasFiles(e)) return; depth++; setDrag(true); };
+    const leave = e => { if (!hasFiles(e)) return; depth = Math.max(0, depth - 1); if (!depth) setDrag(false); };
+    const over = e => { if (hasFiles(e)) e.preventDefault(); };
+    const drop = e => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth = 0;
+      setDrag(false);
+      pickFile(e.dataTransfer.files?.[0]);
+    };
+    window.addEventListener('dragenter', enter);
+    window.addEventListener('dragleave', leave);
+    window.addEventListener('dragover', over);
+    window.addEventListener('drop', drop);
+    return () => {
+      window.removeEventListener('dragenter', enter);
+      window.removeEventListener('dragleave', leave);
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('drop', drop);
+    };
+  }, [busy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentIdx = STEPS.findIndex(([k]) => k === progress.current);
+  const doneCount = progress.current === 'done' ? STEPS.length : Math.max(0, currentIdx);
+  const shownError = localError || error;
 
   return (
-    <div className="landing">
+    <div className={`landing${drag ? ' dragging' : ''}`}>
       <div className="landing-bg" aria-hidden="true" />
       <div className="landing-inner">
         <div className="brand-big">
@@ -49,7 +88,7 @@ export default function Landing({ onOpen, busy, error }) {
             <p>Bedrock World Explorer</p>
           </div>
         </div>
-        <h2 className="landing-title">Descubra tudo o que existe<br />no seu mundo Minecraft.</h2>
+        <h2 className="landing-title">Descubra tudo o que existe <br className="wide-only" />no seu mundo Minecraft.</h2>
         <p className="landing-sub">
           Inventários, baús, mobs, pets, vilas, mapas, biomas e um mapa aéreo do mundo inteiro, lidos direto do arquivo <code>.mcworld</code>.
         </p>
@@ -57,27 +96,27 @@ export default function Landing({ onOpen, busy, error }) {
         {!busy ? (
           <div
             className={`dropzone${drag ? ' drag' : ''}`}
-            onDragOver={e => { e.preventDefault(); setDrag(true); }}
-            onDragLeave={() => setDrag(false)}
-            onDrop={onDrop}
             onClick={() => fileRef.current.click()}
             role="button"
             tabIndex={0}
-            onKeyDown={e => e.key === 'Enter' && fileRef.current.click()}
+            aria-label="Escolher arquivo .mcworld"
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current.click(); } }}
           >
-            <UploadCloud size={44} />
-            <strong>Arraste seu arquivo .mcworld aqui</strong>
-            <span>ou clique para escolher</span>
+            <UploadCloud size={44} aria-hidden="true" />
+            <strong className="pointer-only">{drag ? 'Solte para abrir o mundo' : 'Arraste seu arquivo .mcworld para cá'}</strong>
+            <span className="pointer-only">ou clique para escolher</span>
+            <strong className="touch-only">Escolha o arquivo .mcworld do seu mundo</strong>
             <div className="dropzone-actions" onClick={e => e.stopPropagation()}>
               <button type="button" className="btn btn-primary" onClick={() => fileRef.current.click()}><UploadCloud size={16} /> Escolher .mcworld</button>
               <button type="button" className="btn" onClick={() => dirRef.current.click()}><FolderOpen size={16} /> Abrir pasta do mundo</button>
             </div>
-            <input ref={fileRef} type="file" accept=".mcworld,.zip" hidden onChange={e => pickFile(e.target.files[0])} />
-            <input ref={dirRef} type="file" webkitdirectory="" directory="" hidden onChange={e => pickDir(e.target.files)} />
+            <input ref={fileRef} type="file" accept=".mcworld,.zip" hidden onChange={e => { pickFile(e.target.files[0]); e.target.value = ''; }} />
+            <input ref={dirRef} type="file" webkitdirectory="" directory="" hidden onChange={e => { pickDir(e.target.files); e.target.value = ''; }} />
           </div>
         ) : (
-          <div className="progress-card">
+          <div className="progress-card" role="status" aria-live="polite">
             <h3><Loader2 className="spin" size={18} /> Abrindo o mundo…</h3>
+            <div className="progress-track" aria-hidden="true"><span style={{ width: `${(100 * (doneCount + 0.5)) / STEPS.length}%` }} /></div>
             <ol>
               {STEPS.map(([k, label], i) => {
                 const state = i < currentIdx || progress.current === 'done' ? 'done' : i === currentIdx ? 'active' : 'todo';
@@ -90,10 +129,36 @@ export default function Landing({ onOpen, busy, error }) {
                 );
               })}
             </ol>
+            <p className="progress-note">Mundos grandes podem levar alguns segundos. Nada sai do seu computador.</p>
           </div>
         )}
 
-        {error && <div className="error-box"><AlertTriangle size={18} /> {error}</div>}
+        {shownError && !busy && <div className="error-box" role="alert"><AlertTriangle size={18} /> {shownError}</div>}
+
+        {!busy && (
+          <details className="help">
+            <summary><HelpCircle size={16} /> Onde encontro o arquivo do meu mundo? <ChevronDown size={16} className="help-chevron" /></summary>
+            <div className="help-body">
+              <div>
+                <strong>Exportar pelo jogo (mais fácil)</strong>
+                <ol>
+                  <li>Em <b>Jogar</b>, clique no lápis ao lado do mundo.</li>
+                  <li>Role até o fim das configurações e clique em <b>Exportar mundo</b>.</li>
+                  <li>Salve o arquivo <code>.mcworld</code> e escolha-o aqui.</li>
+                </ol>
+              </div>
+              <div>
+                <strong>Abrir a pasta no Windows</strong>
+                <p>Use <b>Abrir pasta do mundo</b> e escolha uma pasta dentro de <code>minecraftWorlds</code>:</p>
+                <ul>
+                  <li><code>%APPDATA%\Minecraft Bedrock\Users\…\games\com.mojang\minecraftWorlds</code></li>
+                  <li className="muted">Versões antigas: <code>%LOCALAPPDATA%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\minecraftWorlds</code></li>
+                </ul>
+                <p className="muted">Feche o mundo no jogo antes, para que tudo esteja salvo.</p>
+              </div>
+            </div>
+          </details>
+        )}
 
         <div className="features">
           <div><ShieldCheck size={20} /><strong>100% local</strong><span>O arquivo é processado no seu navegador. Nada é enviado para servidor nenhum.</span></div>
@@ -102,6 +167,7 @@ export default function Landing({ onOpen, busy, error }) {
           <div><Cpu size={20} /><strong>Sem instalação</strong><span>Leitor próprio de LevelDB e NBT rodando num Web Worker.</span></div>
         </div>
       </div>
+      {drag && <div className="drop-overlay" aria-hidden="true"><UploadCloud size={56} /><strong>Solte o arquivo .mcworld</strong></div>}
     </div>
   );
 }

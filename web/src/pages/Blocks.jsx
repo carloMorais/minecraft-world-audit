@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Boxes, Hammer, Droplets, Search, Info } from 'lucide-react';
 import { useQuery } from '../client.js';
-import { Panel, Async, PageHeader, BarList, Tabs, SearchInput, Empty, StatCard } from '../components/ui.jsx';
+import { Panel, Async, PageHeader, BarList, Tabs, SearchInput, Empty, StatCard, CoordLink } from '../components/ui.jsx';
 import { blockColor } from '../../../src/extract/surface.js';
 import { fmt, fmtCompact, prettyName, DIM_LABEL, DIM_COLOR, sortDims } from '../format.js';
 
@@ -9,7 +9,7 @@ const swatch = id => <span className="swatch" style={{ background: `rgb(${blockC
 const rowsOf = obj => Object.entries(obj || {}).filter(([k]) => !/:(air|cave_air)$/.test(k)).map(([k, v]) => ({ key: k, label: prettyName(k), value: v, icon: swatch(k), color: `rgb(${blockColor(k).join(',')})` }));
 const QUICK = ['diamond_ore', 'ancient_debris', 'beacon', 'spawner|mob_spawner', 'end_portal_frame', 'enchanting_table', 'bed', 'chest'];
 
-function FindBlock({ dims }) {
+function FindBlock({ dims, go }) {
   const [q, setQ] = useState('');
   const [query, setQuery] = useState(null);
   const [dim, setDim] = useState('all');
@@ -19,26 +19,27 @@ function FindBlock({ dims }) {
     <Panel title="Encontrar blocos" icon={Search}>
       <div className="toolbar">
         <SearchInput value={q} onChange={setQ} onSubmit={v => v && setQuery(v.trim())} placeholder="Nome do bloco ou regex (ex.: diamond_ore, beacon, _bed$)…" />
-        <Tabs value={dim} onChange={setDim} items={[{ value: 'all', label: 'Todas' }, ...dims.map(d => ({ value: d, label: DIM_LABEL[d], color: DIM_COLOR[d] }))]} />
+        <Tabs label="Dimensão" value={dim} onChange={setDim} items={[{ value: 'all', label: 'Todas' }, ...dims.map(d => ({ value: d, label: DIM_LABEL[d], color: DIM_COLOR[d] }))]} />
       </div>
       <div className="quick">
-        {QUICK.map(k => <button type="button" key={k} className="chip" onClick={() => { setQ(k); setQuery(k); }}>{swatch(`minecraft:${k.split('|')[0]}`)} {k.replace('|', ' / ')}</button>)}
+        <span className="quick-label">Atalhos:</span>
+        {QUICK.map(k => <button type="button" key={k} className={`chip${query === k ? ' chip-active' : ''}`} onClick={() => { setQ(k); setQuery(k); }}>{swatch(`minecraft:${k.split('|')[0]}`)} {k.replace('|', ' / ')}</button>)}
       </div>
       {query && (
         <Async state={result} loadingText="Varrendo todos os subchunks…" loadingSub="Isso decodifica o mundo inteiro, alguns segundos.">
-          {r => (r.total === 0 ? <Empty text="Nenhum bloco encontrado" /> : (
+          {r => (r.total === 0 ? <Empty text={`Nenhum bloco corresponde a “${query}”`} /> : (
             <>
               <p className="muted">{fmt(r.total)} blocos encontrados{r.total > r.shown ? ` · mostrando ${fmt(r.shown)}` : ''}</p>
               <div className="table-wrap short">
                 <table className="table">
-                  <thead><tr><th /><th>Bloco</th><th>Dimensão</th><th>X</th><th>Y</th><th>Z</th></tr></thead>
+                  <thead><tr><th /><th>Bloco</th><th>Dimensão</th><th>Coordenadas</th></tr></thead>
                   <tbody>
                     {r.hits.map((h, i) => (
                       <tr key={i}>
                         <td className="cell-icon">{swatch(h.block)}</td>
                         <td><strong>{prettyName(h.block.split('[')[0])}</strong> <small className="muted mono">{h.block.includes('[') ? h.block.slice(h.block.indexOf('[')) : ''}</small></td>
                         <td><span className="dot" style={{ background: DIM_COLOR[h.dimension] }} /> {DIM_LABEL[h.dimension]}</td>
-                        <td className="mono">{h.x}</td><td className="mono">{h.y}</td><td className="mono">{h.z}</td>
+                        <td className="nowrap"><CoordLink go={go} dim={h.dimension} position={[h.x, h.y, h.z]} label={prettyName(h.block.split('[')[0])} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -52,7 +53,7 @@ function FindBlock({ dims }) {
   );
 }
 
-export default function Blocks() {
+export default function Blocks({ go }) {
   const state = useQuery('blocks');
   const [dim, setDim] = useState(null);
   return (
@@ -82,7 +83,7 @@ export default function Blocks() {
                   <BarList rows={placed} limit={25} format={fmt} empty="Nenhum bloco típico de construção" />
                 </Panel>
               </div>
-              <FindBlock dims={dims} />
+              <FindBlock dims={dims} go={go} />
             </>
           );
         }}

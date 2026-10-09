@@ -1,16 +1,12 @@
 import { useState } from 'react';
-import { Heart, Drumstick, Star, MapPin, Skull, Bed, Shield, Sparkles, BookOpen, Tag, Package, Crown } from 'lucide-react';
+import { Heart, Drumstick, MapPin, Skull, Bed, Sparkles, BookOpen, Tag, Package, Crown } from 'lucide-react';
 import { useQuery } from '../client.js';
-import { Panel, Async, Badge, PageHeader, BarList, Empty } from '../components/ui.jsx';
+import { Panel, Async, Badge, PageHeader, BarList, Empty, CoordLink } from '../components/ui.jsx';
 import { Slot, SlotGrid, TooltipScope } from '../components/inventory.jsx';
 import { ItemIcon } from '../components/icons.jsx';
-import { fmt, pos, prettyName, DIM_LABEL, GAMEMODE_LABEL } from '../format.js';
+import { fmt, prettyName, DIM_LABEL, GAMEMODE_LABEL, playerNames, isHost } from '../format.js';
 
 const PERM = { visitor: 'Visitante', member: 'Membro', operator: 'Operador', custom: 'Personalizado' };
-
-function playerName(p, i) {
-  return p.role.startsWith('local') ? 'Host (jogador local)' : `Jogador ${i}`;
-}
 
 function Hearts({ value = 0, max = 20, icon: Icon, cls }) {
   const n = Math.ceil(max / 2);
@@ -33,7 +29,7 @@ function XpBar({ level, progress }) {
   );
 }
 
-function PlayerView({ p, name }) {
+function PlayerView({ p, name, go }) {
   const offhand = p.offhand?.[0];
   const armorBySlot = Object.fromEntries((p.armor || []).map(a => [a.slot, a]));
   const totals = Object.entries(p.itemTotals).sort((a, b) => b[1] - a[1]);
@@ -43,9 +39,10 @@ function PlayerView({ p, name }) {
         <div className="player-view">
           <div className="player-card">
             <div className="player-head">
-              <span className="avatar big" style={{ '--c': p.role.startsWith('local') ? 'var(--accent)' : 'var(--blue)' }}>{p.role.startsWith('local') ? <Crown size={22} /> : name.split(' ')[1]}</span>
+              <span className="avatar big" style={{ '--c': isHost(p) ? 'var(--accent)' : 'var(--blue)' }}>{isHost(p) ? <Crown size={22} /> : name.split(' ')[1]}</span>
               <div>
                 <h2>{name}</h2>
+                {isHost(p) && <small className="muted">Jogador local, dono do mundo</small>}
                 <div className="hero-badges">
                   {p.gameMode && <Badge tone="green">{GAMEMODE_LABEL[p.gameMode] || p.gameMode}</Badge>}
                   {p.permission && <Badge tone={p.permission === 'operator' ? 'gold' : 'neutral'}>{PERM[p.permission] || p.permission}</Badge>}
@@ -61,11 +58,11 @@ function PlayerView({ p, name }) {
               <XpBar level={p.xp.level} progress={p.xp.progress} />
             </div>
             <ul className="facts">
-              <li><MapPin size={15} /><span>Posição</span><b>{DIM_LABEL[p.dimension]} · {pos(p.position)}</b></li>
-              <li><Bed size={15} /><span>Renascimento</span><b>{p.spawnPoint ? `${DIM_LABEL[p.spawnPoint.dimension] || p.spawnPoint.dimension} · ${p.spawnPoint.x}, ${p.spawnPoint.y}, ${p.spawnPoint.z}` : 'spawn do mundo'}</b></li>
-              <li><Skull size={15} /><span>Última morte</span><b>{p.hasDiedBefore && p.lastDeath ? `${DIM_LABEL[p.lastDeath.dimension] || p.lastDeath.dimension} · ${p.lastDeath.x}, ${p.lastDeath.y}, ${p.lastDeath.z}` : 'nunca morreu'}</b></li>
+              <li><MapPin size={15} /><span>Posição</span><b>{DIM_LABEL[p.dimension]} · <CoordLink go={go} dim={p.dimension} position={p.position} label={name} /></b></li>
+              <li><Bed size={15} /><span>Renascimento</span><b>{p.spawnPoint ? <>{DIM_LABEL[p.spawnPoint.dimension] || p.spawnPoint.dimension} · <CoordLink go={go} dim={p.spawnPoint.dimension} position={[p.spawnPoint.x, p.spawnPoint.y, p.spawnPoint.z]} label={`Spawn de ${name}`} /></> : 'spawn do mundo'}</b></li>
+              <li><Skull size={15} /><span>Última morte</span><b>{p.hasDiedBefore && p.lastDeath ? <>{DIM_LABEL[p.lastDeath.dimension] || p.lastDeath.dimension} · <CoordLink go={go} dim={p.lastDeath.dimension} position={[p.lastDeath.x, p.lastDeath.y, p.lastDeath.z]} label={`Morte de ${name}`} /></> : 'nunca morreu'}</b></li>
               <li><BookOpen size={15} /><span>Receitas desbloqueadas</span><b>{fmt(p.unlockedRecipes.length)}</b></li>
-              <li><Shield size={15} /><span>Fome / saturação</span><b>{p.hunger ?? '—'} / {p.saturation ?? '—'}</b></li>
+              <li><Drumstick size={15} /><span>Fome / saturação</span><b>{p.hunger ?? '—'} / {p.saturation ?? '—'}</b></li>
             </ul>
             {p.effects.length > 0 && (
               <div className="effects">
@@ -99,7 +96,7 @@ function PlayerView({ p, name }) {
                 </div>
               </div>
             </Panel>
-            <Panel title={`Ender chest (${p.enderChest.length})`} icon={Package}>
+            <Panel title="Ender chest" icon={Package} actions={<small className="muted">{p.enderChest.length ? `${p.enderChest.length} de 27 slots ocupados` : 'vazio'}</small>}>
               <SlotGrid items={p.enderChest} slots={27} tipHandlers={tip} />
             </Panel>
             <Panel title="Total de itens carregados" icon={Package}>
@@ -114,7 +111,7 @@ function PlayerView({ p, name }) {
   );
 }
 
-export default function Players({ nav }) {
+export default function Players({ nav, go }) {
   const state = useQuery('players');
   const [sel, setSel] = useState(nav?.key || null);
   return (
@@ -124,17 +121,18 @@ export default function Players({ nav }) {
         {players => {
           const idx = Math.max(0, players.findIndex(p => p.key === sel));
           const p = players[idx];
+          const names = playerNames(players);
           return (
             <>
-              <div className="player-tabs">
+              <div className="player-tabs" role="tablist" aria-label="Jogadores">
                 {players.map((pl, i) => (
-                  <button type="button" key={pl.key} className={i === idx ? 'active' : ''} onClick={() => setSel(pl.key)}>
-                    <span className="avatar" style={{ '--c': pl.role.startsWith('local') ? 'var(--accent)' : 'var(--blue)' }}>{pl.role.startsWith('local') ? 'H' : i}</span>
-                    <div><strong>{playerName(pl, i)}</strong><small>Nível {pl.xp.level} · {Object.values(pl.itemTotals).reduce((a, b) => a + b, 0)} itens</small></div>
+                  <button type="button" role="tab" aria-selected={i === idx} key={pl.key} className={i === idx ? 'active' : ''} onClick={() => setSel(pl.key)}>
+                    <span className="avatar" style={{ '--c': isHost(pl) ? 'var(--accent)' : 'var(--blue)' }}>{isHost(pl) ? 'H' : names.get(pl.key).split(' ')[1]}</span>
+                    <div><strong>{names.get(pl.key)}</strong><small>Nível {pl.xp.level} · {fmt(Object.values(pl.itemTotals).reduce((a, b) => a + b, 0))} itens</small></div>
                   </button>
                 ))}
               </div>
-              {p ? <PlayerView key={p.key} p={p} name={playerName(p, idx)} /> : <Empty text="Nenhum jogador salvo neste mundo" />}
+              {p ? <PlayerView key={p.key} p={p} name={names.get(p.key)} go={go} /> : <Empty text="Nenhum jogador salvo neste mundo" />}
             </>
           );
         }}

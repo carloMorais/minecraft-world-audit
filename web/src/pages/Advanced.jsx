@@ -6,7 +6,7 @@ import { fmt, fmtCompact, downloadJson } from '../format.js';
 
 const EXPORTS = [
   ['summary', 'Resumo'], ['players', 'Jogadores'], ['entities', 'Entidades'], ['containers', 'Containers'],
-  ['items', 'Totais de itens'], ['misc', 'Vilas, mapas, scoreboard…'], ['biomes', 'Biomas'], ['blocks', 'Censo de blocos'], ['keys', 'Índice do banco'],
+  ['items', 'Totais de itens'], ['misc', 'Vilas, mapas e mais'], ['biomes', 'Biomas'], ['blocks', 'Censo de blocos'], ['keys', 'Índice do banco'],
 ];
 
 const EXAMPLES = ['~local_player', 'scoreboard', 'portals', 'mobevents', 'TheEnd', 'AutonomousEntities', 'BiomeData', 'schedulerWT'];

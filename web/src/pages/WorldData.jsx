@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Home, Map as MapIcon, DoorOpen, Trophy, Building2, Settings2, Lock } from 'lucide-react';
 import { useQuery, call } from '../client.js';
-import { Panel, Async, PageHeader, Tabs, Empty, Badge } from '../components/ui.jsx';
+import { Panel, Async, PageHeader, Tabs, Empty, Badge, CoordLink } from '../components/ui.jsx';
 import { fmt, DIM_LABEL, DIM_COLOR, prettyName } from '../format.js';
 
 function MapItem({ m }) {
@@ -49,7 +49,7 @@ function Maps({ maps }) {
 
 const POI = { villager: 'Camas', undefined: 'Sinos/encontro', farmer: 'Composteira', librarian: 'Atril', armorer: 'Alto-forno', weaponsmith: 'Rebolo', toolsmith: 'Mesa de ferraria', fletcher: 'Mesa de arco', cartographer: 'Mesa de cartografia', cleric: 'Suporte de poções', fisherman: 'Barril', shepherd: 'Tear', butcher: 'Defumador', leatherworker: 'Caldeirão', mason: 'Cortador de pedras' };
 
-export default function WorldData({ nav }) {
+export default function WorldData({ nav, go }) {
   const state = useQuery('misc');
   const [tab, setTab] = useState(nav?.tab || 'villages');
   return (
@@ -59,7 +59,7 @@ export default function WorldData({ nav }) {
         {M => (
           <>
             <div className="toolbar">
-              <Tabs value={tab} onChange={setTab} items={[
+              <Tabs label="Registro" value={tab} onChange={setTab} items={[
                 { value: 'villages', label: 'Vilas', icon: <Home size={14} />, count: M.villages.length },
                 { value: 'maps', label: 'Mapas', icon: <MapIcon size={14} />, count: M.maps.length },
                 { value: 'portals', label: 'Portais', icon: <DoorOpen size={14} />, count: M.portals.length },
@@ -71,8 +71,11 @@ export default function WorldData({ nav }) {
 
             {tab === 'villages' && (M.villages.length ? (
               <div className="card-grid">
-                {M.villages.map(v => (
-                  <Panel key={v.id} title={`Vila em ${v.bounds ? `${fmt(Math.round((v.bounds.min[0] + v.bounds.max[0]) / 2))}, ${fmt(Math.round((v.bounds.min[2] + v.bounds.max[2]) / 2))}` : v.id.slice(0, 8)}`} icon={Home}>
+                {M.villages.map(v => {
+                  const center = v.bounds && [0, 1, 2].map(i => Math.round((v.bounds.min[i] + v.bounds.max[i]) / 2));
+                  const dim = (v.dimension || 'overworld').toLowerCase().replace('theend', 'the_end');
+                  return (
+                  <Panel key={v.id} title={center ? `Vila em ${fmt(center[0])}, ${fmt(center[2])}` : `Vila ${v.id.slice(0, 8)}`} icon={Home} actions={center && <CoordLink go={go} dim={dim} position={center} label="Vila">Ver no mapa</CoordLink>}>
                     <div className="village-stats">
                       <div><strong>{v.dwellers ?? '—'}</strong><small>moradores</small></div>
                       <div><strong>{v.pointsOfInterest?.villager ?? '—'}</strong><small>camas</small></div>
@@ -84,7 +87,8 @@ export default function WorldData({ nav }) {
                     </div>
                     {v.raid && <Badge tone="red">Invasão em andamento</Badge>}
                   </Panel>
-                ))}
+                  );
+                })}
               </div>
             ) : <Empty text="Nenhuma vila registrada" />)}
 
@@ -94,7 +98,7 @@ export default function WorldData({ nav }) {
               <Panel pad={false}>
                 <table className="table">
                   <thead><tr><th>Dimensão</th><th>Posição</th><th>Largura</th><th>Eixo</th></tr></thead>
-                  <tbody>{M.portals.map((p, i) => <tr key={i}><td><span className="dot" style={{ background: DIM_COLOR[p.dimension] }} /> {DIM_LABEL[p.dimension]}</td><td className="mono">{p.position.join(', ')}</td><td>{p.span}</td><td>{p.orientation.toUpperCase()}</td></tr>)}</tbody>
+                  <tbody>{M.portals.map((p, i) => <tr key={i}><td><span className="dot" style={{ background: DIM_COLOR[p.dimension] }} /> {DIM_LABEL[p.dimension]}</td><td><CoordLink go={go} dim={p.dimension} position={p.position} label="Portal do Nether" /></td><td>{p.span}</td><td>{p.orientation.toUpperCase()}</td></tr>)}</tbody>
                 </table>
               </Panel>
             ) : <Empty text="Nenhum portal registrado" />)}
