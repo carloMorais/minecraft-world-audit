@@ -74,7 +74,7 @@ export default function MapPage({ nav, go }) {
   const players = useQuery('players');
   const dims = coverage.data ? sortDims(Object.keys(coverage.data)) : ['overworld'];
   const [dim, setDimParam] = useHashParam('dim', 'overworld');
-  const [viewId, setViewParam] = useHashParam('view', 'all');
+  const [viewId, setViewParam] = useHashParam('view', 'bases');
   const view = VIEW[viewId] || VIEW.all;
   const [layers, setLayers] = useState(() => new Set([...view.layers, ...(nav?.sel ? [nav.sel.split(':')[0]] : [])]));
   const [overlayParam, setOverlayParam] = useHashParam('overlay', '');
@@ -108,6 +108,8 @@ export default function MapPage({ nav, go }) {
   const { markers, loading, data } = useMarkers(dim, layers, { cfilter, mfilter, hits });
   const visible = useMemo(() => markers.filter(m => layers.has(m.layer)), [markers, layers]);
   const selected = sel ? visible.find(m => `${m.layer}:${m.key}` === sel) || null : null;
+
+  const isLoadingMarkers = Array.from(layers).some(l => loading[l]);
 
   const heatMode = HEAT[overlay] ? overlay : '';
   const heatData = useQuery('heat', undefined, { enabled: !!heatMode });
@@ -488,24 +490,17 @@ export default function MapPage({ nav, go }) {
       <PageHeader
         title="Mapa do mundo"
         subtitle="Vista aérea gerada a partir dos blocos salvos. Escolha uma visão ou combine camadas; clique num marcador para ver os detalhes."
+        actions={<Tabs label="Dimensão" value={dim} onChange={setDim} items={dims.map(d => ({ value: d, label: DIM_LABEL[d], color: DIM_COLOR[d] }))} />}
       />
-
+      <div className="map-views" role="tablist" aria-label="Visão do mapa">
+        {VIEWS.map(v => (
+          <button type="button" role="tab" key={v.id} aria-selected={v.id === view.id} className={v.id === view.id ? 'active' : ''} onClick={() => setView(v.id)}>
+            <v.icon size={15} /> {v.label}
+          </button>
+        ))}
+      </div>
       <div className={`map-layout${wide ? ' wide' : ''}`}>
         <div className="map-wrap" ref={wrapRef}>
-          <div className="map-floating-dim">
-            {dims.map(d => (
-              <button type="button" key={d} className={d === dim ? 'active' : ''} onClick={() => setDim(d)} title={DIM_LABEL[d]}>
-                <span className="dot" style={{ background: DIM_COLOR[d] }} /> {DIM_LABEL[d]}
-              </button>
-            ))}
-          </div>
-
-          <form className="map-floating-search" onSubmit={runGoto}>
-            <Navigation size={14} aria-hidden="true" style={{ color: 'var(--muted)', marginRight: '6px' }} />
-            <input value={goto} onChange={e => setGoto(e.target.value)} placeholder="Ir para X, Z (ex: 120, -340)" aria-label="Ir para coordenada" inputMode="numeric" spellCheck={false} />
-            <button type="submit" disabled={!parseCoords(goto)}>Ir</button>
-          </form>
-
           <canvas
             ref={canvasRef}
             tabIndex={0}
@@ -521,6 +516,7 @@ export default function MapPage({ nav, go }) {
             style={{ cursor: measure?.on ? 'crosshair' : hover?.marker ? 'pointer' : drag.current ? 'grabbing' : 'grab' }}
           />
           {surface.loading && <div className="map-overlay"><Loading text="Renderizando o terreno…" sub="Lendo cada coluna de blocos. Pode levar alguns segundos." /></div>}
+          {!surface.loading && isLoadingMarkers && <div className="map-overlay marker-loading"><Loader2 className="spin" size={20} /> <span className="muted">Buscando detalhes da camada...</span></div>}
           {surface.error && <div className="map-overlay"><ErrorBox error={surface.error} /></div>}
           {surface.data === null && <div className="map-overlay"><ErrorBox error={new Error('Esta dimensão não tem chunks gerados.')} /></div>}
           <div className="map-toolbar">
@@ -577,89 +573,54 @@ export default function MapPage({ nav, go }) {
             />
           )}
           {sideTab === 'view' ? (
-            <>
-              <div className="map-views-container">
-                <div className="map-views" role="tablist" aria-label="Visão do mapa">
-                  {VIEWS.map(v => (
-                    <button type="button" role="tab" key={v.id} aria-selected={v.id === view.id} className={v.id === view.id ? 'active' : ''} onClick={() => setView(v.id)}>
-                      <v.icon size={15} /> {v.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Panel
-                dim={dim} markers={markers} visible={layers} data={data} loading={loading} go={go}
-                select={select} selected={selected} sel={sel} jump={jump}
-                cfilter={cfilter} setCfilter={setCfilter} mfilter={mfilter} setMfilter={f => { setMfilter(f); setSel(''); }}
-                search={search} setSearch={s => { setSearch(s); setSel(''); }} searchState={searchState} hits={hits}
-                biomes={overlay === 'biomes' ? (B ? { ...B, empty: !B.names.length } : biomeData.data === null ? { empty: true } : null) : null}
-                hoverBiome={hoverBiome} biome={biome} setBiome={setBiome}
-              />
-            </>
+            <Panel
+              dim={dim} markers={markers} visible={layers} data={data} loading={loading} go={go}
+              select={select} selected={selected} sel={sel} jump={jump}
+              cfilter={cfilter} setCfilter={setCfilter} mfilter={mfilter} setMfilter={f => { setMfilter(f); setSel(''); }}
+              search={search} setSearch={s => { setSearch(s); setSel(''); }} searchState={searchState} hits={hits}
+              biomes={overlay === 'biomes' ? (B ? { ...B, empty: !B.names.length } : biomeData.data === null ? { empty: true } : null) : null}
+              hoverBiome={hoverBiome} biome={biome} setBiome={setBiome}
+            />
           ) : (
             <>
-              <details className="map-accordion" open>
-                <summary>🗺️ Explorar</summary>
-                <div className="map-accordion-body">
-                  {LAYER_GROUPS.filter(g => g !== 'Desempenho e Redstone').map(g => (
-                    <div key={g} className="layer-group">
-                      <h4>{g}</h4>
-                      {LAYERS.filter(l => l.group === g).map(l => {
-                        const on = layers.has(l.id);
-                        const n = markers.filter(m => m.layer === l.id).length;
-                        return (
-                          <label key={l.id} className={`layer${on && !n && !loading[l.id] ? ' disabled' : ''}`}>
-                            <input type="checkbox" checked={on} onChange={() => setLayers(s => { const ns = new Set(s); ns.has(l.id) ? ns.delete(l.id) : ns.add(l.id); return ns; })} />
-                            <span className="dot" style={{ background: l.color }} />
-                            <l.icon size={14} /> {l.label}
-                            <small>{on && loading[l.id] ? <Loader2 className="spin" size={12} /> : on || !l.slow ? n : l.id === 'hits' ? '' : '…'}</small>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ))}
-                  <small className="muted">Camadas marcadas com … carregam ao ligar (algumas varrem o terreno inteiro).</small>
+              <form className="search search-sm goto" onSubmit={runGoto}>
+                <Navigation size={14} aria-hidden="true" />
+                <input value={goto} onChange={e => setGoto(e.target.value)} placeholder="Ir para X, Z (ex.: 120, -340)" aria-label="Ir para coordenada" inputMode="numeric" spellCheck={false} />
+                <button type="submit" className="btn btn-sm" disabled={!parseCoords(goto)}>Ir</button>
+              </form>
+              <h4>Sobreposição</h4>
+              <div className="heat-picker" role="radiogroup" aria-label="Sobreposição">
+                {OVERLAYS.map(([k, label]) => (
+                  <button type="button" key={k || 'none'} role="radio" aria-checked={overlay === k} className={`chip${overlay === k ? ' chip-active' : ''}`} onClick={() => setOverlayParam(k || 'none')}>{label}</button>
+                ))}
+              </div>
+              {heatLayer && (
+                <div className="heat-legend">
+                  <span className="heat-ramp" style={{ '--from': `rgb(${HEAT[heatMode].from.join(',')})`, '--to': `rgb(${HEAT[heatMode].to.join(',')})` }} />
+                  <span className="heat-scale"><small>pouco</small><small>{fmt(heatLayer.top)}+</small></span>
+                  <small className="muted">{HEAT[heatMode].hint}. Passe o mouse para ver o valor de cada chunk.</small>
                 </div>
-              </details>
-
-              <details className="map-accordion">
-                <summary>⚙️ Desempenho e Avançado</summary>
-                <div className="map-accordion-body">
-                  <h4>Sobreposição / Calor</h4>
-                  <div className="heat-picker" role="radiogroup" aria-label="Sobreposição">
-                    {OVERLAYS.map(([k, label]) => (
-                      <button type="button" key={k || 'none'} role="radio" aria-checked={overlay === k} className={`chip${overlay === k ? ' chip-active' : ''}`} onClick={() => setOverlayParam(k || 'none')}>{label}</button>
-                    ))}
-                  </div>
-                  {heatLayer && (
-                    <div className="heat-legend">
-                      <span className="heat-ramp" style={{ '--from': `rgb(${HEAT[heatMode].from.join(',')})`, '--to': `rgb(${HEAT[heatMode].to.join(',')})` }} />
-                      <span className="heat-scale"><small>pouco</small><small>{fmt(heatLayer.top)}+</small></span>
-                      <small className="muted">{HEAT[heatMode].hint}. Passe o mouse para ver o valor de cada chunk.</small>
-                    </div>
-                  )}
-                  {heatMode && overlayBuilt?.dim === dim && overlayBuilt.mode === heatMode && overlayBuilt.empty && <small className="muted">Nada para mostrar nesta dimensão.</small>}
-                  {overlay === 'biomes' && <small className="muted">A legenda dos biomas fica na visão <button type="button" className="link-btn" onClick={() => setView('biomes')}>Biomas</button>.</small>}
-
-                  {LAYER_GROUPS.filter(g => g === 'Desempenho e Redstone').map(g => (
-                    <div key={g} className="layer-group">
-                      <h4>Camadas {g}</h4>
-                      {LAYERS.filter(l => l.group === g).map(l => {
-                        const on = layers.has(l.id);
-                        const n = markers.filter(m => m.layer === l.id).length;
-                        return (
-                          <label key={l.id} className={`layer${on && !n && !loading[l.id] ? ' disabled' : ''}`}>
-                            <input type="checkbox" checked={on} onChange={() => setLayers(s => { const ns = new Set(s); ns.has(l.id) ? ns.delete(l.id) : ns.add(l.id); return ns; })} />
-                            <span className="dot" style={{ background: l.color }} />
-                            <l.icon size={14} /> {l.label}
-                            <small>{on && loading[l.id] ? <Loader2 className="spin" size={12} /> : on || !l.slow ? n : l.id === 'hits' ? '' : '…'}</small>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ))}
+              )}
+              {heatMode && overlayBuilt?.dim === dim && overlayBuilt.mode === heatMode && overlayBuilt.empty && <small className="muted">Nada para mostrar nesta dimensão.</small>}
+              {overlay === 'biomes' && <small className="muted">A legenda dos biomas fica na visão <button type="button" className="link-btn" onClick={() => setView('biomes')}>Biomas</button>.</small>}
+              {LAYER_GROUPS.map(g => (
+                <div key={g} className="layer-group">
+                  <h4>{g}</h4>
+                  {LAYERS.filter(l => l.group === g).map(l => {
+                    const on = layers.has(l.id);
+                    const n = markers.filter(m => m.layer === l.id).length;
+                    return (
+                      <label key={l.id} className={`layer${on && !n && !loading[l.id] ? ' disabled' : ''}`}>
+                        <input type="checkbox" checked={on} onChange={() => setLayers(s => { const ns = new Set(s); ns.has(l.id) ? ns.delete(l.id) : ns.add(l.id); return ns; })} />
+                        <span className="dot" style={{ background: l.color }} />
+                        <l.icon size={14} /> {l.label}
+                        <small>{on && loading[l.id] ? <Loader2 className="spin" size={12} /> : on || !l.slow ? n : l.id === 'hits' ? '' : '…'}</small>
+                      </label>
+                    );
+                  })}
                 </div>
-              </details>
+              ))}
+              <small className="muted">Camadas marcadas com … carregam ao ligar (algumas varrem o terreno inteiro).</small>
             </>
           )}
         </aside>
