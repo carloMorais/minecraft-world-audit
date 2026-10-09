@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard, Map as MapIcon, Users, PawPrint, Archive, Backpack, Boxes, Trees, Globe2, Terminal, LogOut, Menu, X, Search,
-  UploadCloud, FolderOpen, Repeat,
+  UploadCloud, FolderOpen, Repeat, Castle, Gauge, Pickaxe, Trophy, Store, PackageOpen, Shield, Coins, Waypoints, GitCompare,
 } from 'lucide-react';
 import { openWorld, call } from './client.js';
 import { parseHash, hashFor } from './route.js';
@@ -18,6 +18,16 @@ import Blocks from './pages/Blocks.jsx';
 import Biomes from './pages/Biomes.jsx';
 import WorldData from './pages/WorldData.jsx';
 import Advanced from './pages/Advanced.jsx';
+import Bases from './pages/Bases.jsx';
+import Wealth from './pages/Wealth.jsx';
+import Performance from './pages/Performance.jsx';
+import Mining from './pages/Mining.jsx';
+import Storage from './pages/Storage.jsx';
+import Gear from './pages/Gear.jsx';
+import Collections from './pages/Collections.jsx';
+import Villagers from './pages/Villagers.jsx';
+import Portals from './pages/Portals.jsx';
+import Compare from './pages/Compare.jsx';
 
 const PAGES = [
   { id: 'overview', label: 'Visão geral', icon: LayoutDashboard, el: Overview, group: 'Mundo' },
@@ -29,6 +39,16 @@ const PAGES = [
   { id: 'entities', label: 'Mobs e entidades', icon: PawPrint, el: Entities, group: 'Conteúdo' },
   { id: 'blocks', label: 'Blocos', icon: Boxes, el: Blocks, group: 'Terreno' },
   { id: 'biomes', label: 'Biomas', icon: Trees, el: Biomes, group: 'Terreno' },
+  { id: 'bases', label: 'Bases', icon: Castle, el: Bases, group: 'Análise' },
+  { id: 'wealth', label: 'Patrimônio', icon: Coins, el: Wealth, group: 'Análise' },
+  { id: 'collections', label: 'Coleções', icon: Trophy, el: Collections, group: 'Análise' },
+  { id: 'villagers', label: 'Aldeões e trocas', icon: Store, el: Villagers, group: 'Análise' },
+  { id: 'storage', label: 'Organização', icon: PackageOpen, el: Storage, group: 'Análise' },
+  { id: 'gear', label: 'Equipamento', icon: Shield, el: Gear, group: 'Análise' },
+  { id: 'performance', label: 'Lag e farms', icon: Gauge, el: Performance, group: 'Análise' },
+  { id: 'mining', label: 'Minérios por altura', icon: Pickaxe, el: Mining, group: 'Análise' },
+  { id: 'portals', label: 'Rede de portais', icon: Waypoints, el: Portals, group: 'Análise' },
+  { id: 'compare', label: 'Comparar saves', icon: GitCompare, el: Compare, group: 'Ferramentas' },
   { id: 'advanced', label: 'Avançado', icon: Terminal, el: Advanced, group: 'Ferramentas' },
 ];
 const GROUPS = [...new Set(PAGES.map(p => p.group))];

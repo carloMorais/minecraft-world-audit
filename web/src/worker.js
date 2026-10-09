@@ -11,7 +11,12 @@ import { extractBlockEntities, summarizeBlockEntities } from '../../src/extract/
 import { chunkCoverage, blockCensus, findBlocks, biomeCensus } from '../../src/extract/terrain.js';
 import { extractMisc, keyStats } from '../../src/extract/misc.js';
 import { findItems, worldItemTotals } from '../../src/extract/search.js';
+import { totalByItem } from '../../src/extract/items.js';
 import { renderSurface } from '../../src/extract/surface.js';
+import {
+  chunkActivity, findBases, lagReport, chunkHeat, oreDistribution, storageReport, gearReport, wealthReport, portalLinks,
+} from '../../src/extract/analysis.js';
+import { DIMENSIONS } from '../../src/constants.js';
 
 const DIM_IDS = { overworld: 0, nether: 1, the_end: 2 };
 const STORAGE = new Set(['Chest', 'Barrel', 'ShulkerBox', 'Hopper', 'Dispenser', 'Dropper', 'Furnace', 'BlastFurnace', 'Smoker', 'BrewingStand', 'Crafter', 'EnderChest', 'ChiseledBookshelf', 'DecoratedPot']);
@@ -24,6 +29,8 @@ const players = () => memo('players', () => extractPlayers(world));
 const entities = () => memo('entities', () => extractEntities(world));
 const blockEntities = () => memo('blockEntities', () => extractBlockEntities(world));
 const misc = () => memo('misc', () => extractMisc(world, players()));
+const activity = () => memo('activity', () => chunkActivity(world, blockEntities(), entities()));
+const bases = () => memo('bases', () => findBases({ rows: activity(), blockEntities: blockEntities(), entities: entities(), players: players(), villages: misc().villages, value: true }));
 
 function progress(step, detail) { postMessage({ type: 'progress', step, detail }); }
 
@@ -83,6 +90,39 @@ const methods = {
   items: () => memo('items', () => worldItemTotals(players(), blockEntities(), entities())),
   findItem: ({ q }) => findItems(toRegex(q), players(), blockEntities(), entities()),
   findBlock: ({ q, dim, limit = 500 }) => findBlocks(world, toRegex(q), { limit, dim: dim ? DIM_IDS[dim] : undefined }),
+  // analyses (src/extract/analysis.js); the first one pays for the terrain pass
+  bases: () => bases(),
+  lag: () => memo('lag', () => lagReport(activity())),
+  heat: () => memo('heat', () => chunkHeat(activity())),
+  ores: () => memo('ores', () => oreDistribution(world)),
+  storageReport: () => memo('storageReport', () => storageReport(blockEntities(), bases())),
+  gear: () => memo('gear', () => gearReport(players(), blockEntities(), entities())),
+  wealth: () => memo('wealth', () => wealthReport(players(), blockEntities(), entities(), bases())),
+  portals: () => memo('portalLinks', () => portalLinks(misc().portals)),
+  villagers: () => memo('villagers', () => ({
+    villagers: entities().filter(e => /villager|wandering_trader/.test(e.type))
+      .map(e => ({ type: e.type, uniqueId: e.uniqueId, customName: e.customName, profession: e.profession, tradeTier: e.tradeTier, dimension: e.dimension, position: e.position, trades: e.trades, baby: e.baby })),
+    villages: misc().villages.map(v => ({ id: v.id, dimension: v.dimension, bounds: v.bounds, dwellers: v.dwellers, dwellerGroups: v.dwellerGroups, pointsOfInterest: v.pointsOfInterest, raid: !!v.raid })),
+  })),
+  // Compact picture of the world for the save comparison (each save lives in its own worker).
+  snapshot: () => memo('snapshot', () => {
+    const L = level();
+    const chunks = {};
+    for (const [ck] of world.chunkRecords([44, 118])) (chunks[DIMENSIONS[ck.dim] ?? `dim${ck.dim}`] ||= []).push(ck.x, ck.z);
+    const byType = {};
+    for (const e of entities()) byType[e.type] = (byType[e.type] || 0) + 1;
+    const beTypes = {};
+    for (const b of blockEntities()) beTypes[b.id] = (beTypes[b.id] || 0) + 1;
+    return {
+      name: L.name, lastPlayed: L.lastPlayed, daysPlayed: L.time.daysPlayed, playHours: L.time.approxPlayTimeHours,
+      chunks,
+      players: players().map(p => ({ key: p.key, role: p.role, xp: p.xp, health: p.health, dimension: p.dimension, position: p.position, itemTotals: p.itemTotals, enderChestTotals: p.enderChestTotals, hasDiedBefore: p.hasDiedBefore, lastDeath: p.lastDeath })),
+      entities: byType,
+      blockEntities: beTypes,
+      items: methods.items(),
+      containers: blockEntities().filter(b => b.items?.length || STORAGE.has(b.id)).map(b => ({ id: b.id, customName: b.customName, dimension: b.dimension, position: b.position, totals: totalByItem(b.items || []) })),
+    };
+  }),
   icon: () => world.source.read('world_icon.jpeg'),
   raw: ({ key }) => {
     const k = key.startsWith('hex:') ? Buffer.from(key.slice(4), 'hex') : Buffer.from(key, 'latin1');

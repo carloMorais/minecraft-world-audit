@@ -18,6 +18,8 @@ npm run preview    # serve o build localmente
 
 Páginas: visão geral, mapa aéreo interativo (terreno renderizado bloco a bloco, com jogadores, camas, mortes, portais, vilas e pets marcados), jogadores (inventário no estilo do jogo com tooltips, ender chest, vida, fome, XP), mobs e entidades (pets e donos, aldeões e trocas), baús e containers, busca de itens pelo mundo inteiro, censo e busca de blocos, biomas, vilas, mapas de papel renderizados, scoreboard, estruturas, explorador NBT e exportação em JSON.
 
+Análises: detecção automática de bases (com o que cada uma guarda), patrimônio estimado por jogador e por base, coleções (discos, moldes, fragmentos, cores, mobs domados, biomas), aldeões e as trocas mais baratas, organização dos baús, equipamento gasto ou sem Remendo, lag e farms por chunk, minérios por altura, rede de portais do Nether, camadas de calor no mapa e comparação entre dois saves do mesmo mundo.
+
 ## CLI
 
 ```bash
@@ -31,7 +33,7 @@ node bin/mcx.js map mundo.mcworld mapa.png --dim nether   # mapa aéreo em PNG
 node bin/mcx.js players mundo.mcworld --json --raw    # NBT completo
 ```
 
-`node bin/mcx.js --help` lista todos os comandos (`level`, `players`, `inventory`, `entities`, `containers`, `signs`, `blocks`, `find-block`, `find-item`, `items`, `biomes`, `chunks`, `chunk`, `maps`, `villages`, `portals`, `scoreboard`, `structures`, `misc`, `keys`, `raw`, `export`).
+`node bin/mcx.js --help` lista todos os comandos (`level`, `players`, `inventory`, `entities`, `containers`, `signs`, `blocks`, `find-block`, `find-item`, `items`, `biomes`, `chunks`, `chunk`, `maps`, `villages`, `portals`, `scoreboard`, `structures`, `misc`, `keys`, `raw`, `export`, e as análises `bases`, `lag`, `ores`, `storage`, `gear`, `wealth`, `portal-links`).
 
 ## O que é extraído
 

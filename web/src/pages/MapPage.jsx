@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { ZoomIn, ZoomOut, Maximize, LocateFixed, Download, Users, Skull, DoorOpen, Home, PawPrint, Flag, Bed, Crosshair, Archive, Search, X, Ruler, Navigation } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, LocateFixed, Download, Users, Skull, DoorOpen, Home, PawPrint, Flag, Bed, Crosshair, Archive, Search, X, Ruler, Navigation, Castle, Loader2 } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { useHashParam, replaceParams } from '../route.js';
 import { Tabs, Loading, ErrorBox, PageHeader } from '../components/ui.jsx';
 import { Slot, TooltipScope } from '../components/inventory.jsx';
 import McText, { stripCodes } from '../components/McText.jsx';
-import { fmt, DIM_LABEL, DIM_COLOR, prettyName, mobName, sortDims, playerNames } from '../format.js';
+import { fmt, fmtCompact, DIM_LABEL, DIM_COLOR, prettyName, mobName, sortDims, playerNames } from '../format.js';
 import { CONTAINER_LABEL, CONTAINER_COLOR, containerItems } from '../containers.js';
+import { baseName } from './Bases.jsx';
 
 const LAYERS = [
+  { id: 'bases', label: 'Bases', icon: Castle, color: '#5fd0c0' },
   { id: 'players', label: 'Jogadores', icon: Users, color: '#5fd068' },
   { id: 'spawns', label: 'Camas / spawn', icon: Bed, color: '#4fb2d8' },
   { id: 'deaths', label: 'Mortes', icon: Skull, color: '#ef5b5b' },
@@ -20,6 +22,37 @@ const LAYERS = [
 ];
 
 const DEFAULT_CFILTER = { types: null, withItems: true, empty: false, loot: false, q: '' };
+
+// Per-chunk heat overlays. Each is a single-hue ramp (light → dark) with alpha rising with the value.
+const HEAT = {
+  build: { label: 'Construção', index: 2, from: [255, 236, 179], to: [214, 92, 18], hint: 'Blocos de construção, containers, placas e pets por chunk' },
+  lag: { label: 'Lag', index: 3, from: [255, 205, 210], to: [183, 18, 42], hint: 'Entidades, itens no chão, funis e blocos que processam a cada tick' },
+};
+const heatColor = (h, t) => h.from.map((c, i) => Math.round(c + (h.to[i] - c) * t));
+
+/** One pixel per chunk; values are log-scaled against the 99th percentile so one outlier does not wash out the rest. */
+async function heatBitmap(rows, mode) {
+  const h = HEAT[mode];
+  const vals = rows.map(r => r[h.index]).filter(v => v > 0);
+  if (!vals.length) return { mode, empty: true };
+  let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
+  for (const r of rows) { minX = Math.min(minX, r[0]); maxX = Math.max(maxX, r[0]); minZ = Math.min(minZ, r[1]); maxZ = Math.max(maxZ, r[1]); }
+  const sorted = [...vals].sort((a, b) => a - b);
+  const top = sorted[Math.floor((sorted.length - 1) * 0.99)] || sorted[sorted.length - 1];
+  const w = maxX - minX + 1, hgt = maxZ - minZ + 1;
+  const img = new ImageData(w, hgt);
+  const lookup = new Map();
+  for (const r of rows) {
+    const v = r[h.index];
+    if (!(v > 0)) continue;
+    lookup.set(`${r[0]}:${r[1]}`, v);
+    const t = Math.min(1, Math.log1p(v) / Math.log1p(top));
+    const [cr, cg, cb] = heatColor(h, t);
+    const o = ((r[1] - minZ) * w + (r[0] - minX)) * 4;
+    img.data[o] = cr; img.data[o + 1] = cg; img.data[o + 2] = cb; img.data[o + 3] = Math.round(255 * (0.3 + 0.6 * t));
+  }
+  return { bmp: await createImageBitmap(img), minX, minZ, w, h: hgt, max: sorted[sorted.length - 1], top, lookup, mode };
+}
 
 /** True when an item (or anything nested inside it, e.g. a shulker box) matches the regex. */
 const itemMatches = (it, re) => re.test(it.item) || re.test(prettyName(it.item))
@@ -42,13 +75,23 @@ function filterContainers(all, dim, f) {
   });
 }
 
-function useMarkers(dim, cfilter) {
+function useMarkers(dim, cfilter, withBases) {
   const players = useQuery('players');
   const misc = useQuery('misc');
   const summary = useQuery('summary');
   const storage = useQuery('storage');
+  // bases need the terrain pass (seconds), so they load only while their layer is on
+  const bases = useQuery('bases', undefined, { enabled: withBases });
   return useMemo(() => {
     const m = [];
+    for (const b of bases.data || []) {
+      if (b.dimension !== dim) continue;
+      m.push({
+        layer: 'bases', x: b.center[0], z: b.center[1], label: baseName(b), base: b,
+        detail: `${fmt(b.chunks)} chunks · ${fmt(b.containers)} containers · ${fmtCompact(b.storedItems)} itens`,
+        box: { min: [b.bounds.x[0], 0, b.bounds.z[0]], max: [b.bounds.x[1] + 1, 0, b.bounds.z[1] + 1] },
+      });
+    }
     const P = players.data || [];
     const names = playerNames(P);
     P.forEach(p => {
@@ -85,7 +128,7 @@ function useMarkers(dim, cfilter) {
       });
     }
     return m;
-  }, [players.data, misc.data, summary.data, storage.data, dim, cfilter]);
+  }, [players.data, misc.data, summary.data, storage.data, bases.data, dim, cfilter]);
 }
 
 /** "120, -340" or "120 64 -340" → { x, y?, z }. */
@@ -100,7 +143,7 @@ const focusFromParams = p => (p?.x != null && p?.z != null && !Number.isNaN(+p.x
   ? { dim: p.dim || 'overworld', x: +p.x, y: p.y != null && p.y !== '' ? +p.y : null, z: +p.z, label: p.label || '' }
   : null);
 
-export default function MapPage({ nav }) {
+export default function MapPage({ nav, go }) {
   const coverage = useQuery('coverage');
   const dims = coverage.data ? sortDims(Object.keys(coverage.data)) : ['overworld'];
   const [dim, setDimParam] = useHashParam('dim', 'overworld');
@@ -117,9 +160,22 @@ export default function MapPage({ nav }) {
   const [goto, setGoto] = useState('');
   const surface = useQuery('surface', { dim });
   const [cfilter, setCfilter] = useState(DEFAULT_CFILTER);
-  const markers = useMarkers(dim, cfilter);
+  // the bases layer starts off: turning it on runs the terrain pass
+  const [layers, setLayers] = useState(() => new Set(LAYERS.map(l => l.id).filter(id => id !== 'bases' || nav?.layer === 'bases')));
+  const markers = useMarkers(dim, cfilter, layers.has('bases'));
   const storage = useQuery('storage');
-  const [layers, setLayers] = useState(() => new Set(LAYERS.map(l => l.id)));
+  const [heat, setHeat] = useHashParam('heat', '');
+  const heatMode = HEAT[heat] ? heat : '';
+  const heatData = useQuery('heat', undefined, { enabled: !!heatMode });
+  const [heatBuilt, setHeatBuilt] = useState(null);
+  useEffect(() => {
+    if (!heatMode || !heatData.data) return undefined;
+    let alive = true;
+    heatBitmap(heatData.data[dim] || [], heatMode).then(l => { if (alive) setHeatBuilt({ ...l, dim }); });
+    return () => { alive = false; };
+  }, [heatData.data, heatMode, dim]);
+  // only the bitmap built for the current dimension and mode is shown
+  const heatLayer = heatMode && heatBuilt?.mode === heatMode && heatBuilt.dim === dim && heatBuilt.bmp ? heatBuilt : null;
   const canvasRef = useRef();
   const wrapRef = useRef();
   const bitmapRef = useRef(null);
@@ -143,6 +199,10 @@ export default function MapPage({ nav }) {
     if (s && bmp) {
       ctx.imageSmoothingEnabled = scale < 1;
       ctx.drawImage(bmp, (s.minX - ox) * scale, (s.minZ - oz) * scale, s.width * scale, s.height * scale);
+    }
+    if (heatLayer) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(heatLayer.bmp, (heatLayer.minX * 16 - ox) * scale, (heatLayer.minZ * 16 - oz) * scale, heatLayer.w * 16 * scale, heatLayer.h * 16 * scale);
     }
     // grid of 512-block regions when zoomed in enough
     if (scale >= 0.5) {
@@ -233,7 +293,7 @@ export default function MapPage({ nav }) {
         ctx.fillText(text, mx - tw / 2, my - 8);
       }
     }
-  }, [surface.data, markers, layers, selected, focus, dim, measure]);
+  }, [surface.data, markers, layers, selected, focus, dim, measure, heatLayer]);
 
   const fit = useCallback(() => {
     const s = surface.data, c = wrapRef.current;
@@ -449,6 +509,7 @@ export default function MapPage({ nav }) {
             {hover ? <><Crosshair size={13} /> X {fmt(hover.x)} · Z {fmt(hover.z)}</> : <><span className="hud-hint pointer-only">Arraste para mover · roda do mouse para zoom</span><span className="hud-hint touch-only">Arraste para mover · pinça para zoom</span></>}
             <span className="sep" /> zoom {view.current.scale >= 1 ? `${view.current.scale.toFixed(1)}×` : `1:${Math.round(1 / view.current.scale)}`}
             {surface.data && <><span className="sep" />{fmt(surface.data.chunks)} chunks</>}
+            {hover && heatLayer && <><span className="sep" />{HEAT[heatMode].label.toLowerCase()} {fmt(heatLayer.lookup.get(`${Math.floor(hover.x / 16)}:${Math.floor(hover.z / 16)}`) || 0)}</>}
           </div>
         </div>
         <aside className="map-side">
@@ -467,6 +528,26 @@ export default function MapPage({ nav }) {
             <input value={goto} onChange={e => setGoto(e.target.value)} placeholder="Ir para X, Z (ex.: 120, -340)" aria-label="Ir para coordenada" inputMode="numeric" spellCheck={false} />
             <button type="submit" className="btn btn-sm" disabled={!parseCoords(goto)}>Ir</button>
           </form>
+          <h4>Sobreposição</h4>
+          <div className="heat-picker" role="radiogroup" aria-label="Sobreposição por chunk">
+            {[['', 'Nenhuma'], ...Object.entries(HEAT).map(([k, h]) => [k, h.label])].map(([k, label]) => (
+              <button type="button" key={k || 'none'} role="radio" aria-checked={heatMode === k} className={`chip${heatMode === k ? ' chip-active' : ''}`} onClick={() => setHeat(k)}>{label}</button>
+            ))}
+          </div>
+          {heatMode && (
+            <div className="heat-legend">
+              {heatData.loading && <span className="heat-loading"><Loader2 className="spin" size={13} /> Calculando por chunk… a primeira vez varre o terreno inteiro (alguns segundos).</span>}
+              {heatData.error && <span className="muted">{heatData.error.message}</span>}
+              {heatBuilt?.dim === dim && heatBuilt.mode === heatMode && heatBuilt.empty && <span className="muted">Nada para mostrar nesta dimensão.</span>}
+              {heatLayer && (
+                <>
+                  <span className="heat-ramp" style={{ '--from': `rgb(${HEAT[heatMode].from.join(',')})`, '--to': `rgb(${HEAT[heatMode].to.join(',')})` }} />
+                  <span className="heat-scale"><small>pouco</small><small>{fmt(heatLayer.top)}+</small></span>
+                  <small className="muted">{HEAT[heatMode].hint}. Passe o mouse para ver o valor de cada chunk.</small>
+                </>
+              )}
+            </div>
+          )}
           <h4>Camadas</h4>
           {LAYERS.map(l => {
             const n = markers.filter(m => m.layer === l.id).length;
@@ -498,6 +579,7 @@ export default function MapPage({ nav }) {
                 {items.length > 27 && <small>+{items.length - 27} slots</small>}
                 <div className="marker-actions">
                   <button type="button" className="btn btn-sm" onClick={() => centerOn(mk.x, mk.z, 4)}>Aproximar aqui</button>
+                  {mk.base && go && <button type="button" className="btn btn-sm" onClick={() => go('bases', { id: mk.base.id })}>Ver base</button>}
                   {selected && <button type="button" className="btn btn-sm btn-ghost" onClick={() => setSelected(null)}>Fechar</button>}
                 </div>
               </div>

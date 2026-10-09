@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '../..');
-const PAGES = ['overview', 'map', 'world', 'players', 'players?view=compare', 'containers', 'items?q=diamond', 'entities', 'blocks', 'biomes', 'advanced'];
+const PAGES = ['overview', 'map', 'world', 'players', 'players?view=compare', 'containers', 'items?q=diamond', 'entities', 'blocks', 'biomes', 'bases', 'bases?id=1', 'map?heat=build&layer=bases', 'wealth', 'collections', 'villagers', 'storage', 'gear', 'performance', 'mining', 'mining?ore=diamond', 'portals', 'compare', 'advanced'];
 const sample = existsSync(join(ROOT, 'samples')) && readdirSync(join(ROOT, 'samples')).find(f => f.endsWith('.mcworld'));
 const chrome = [
   process.env.CHROME,
@@ -74,6 +74,14 @@ test('web app renders every page with a sample world', { skip, timeout: 600_000 
       assert.ok(state.page, `#${page} rendered no .page`);
       assert.equal(state.error, null, `#${page} shows an error: ${state.error}`);
     }
+    // save comparison: open the same sample in the second worker
+    await evaluate('location.hash = "compare"');
+    assert.ok(await waitFor('!!document.querySelector(".compare-drop input[type=file]")', 30_000), 'compare picker did not render');
+    const doc2 = await send('DOM.getDocument');
+    const input2 = await send('DOM.querySelector', { nodeId: doc2.root.nodeId, selector: '.compare-drop input[type=file]' });
+    await send('DOM.setFileInputFiles', { nodeId: input2.nodeId, files: [join(ROOT, 'samples', sample)] });
+    assert.ok(await waitFor('!!document.querySelector(".compare-sides, .error-box")', 240_000), 'comparison never finished');
+    assert.equal(await evaluate('document.querySelector(".error-box")?.textContent || null'), null, 'comparison failed');
     assert.deepEqual(problems, [], problems.join('\n'));
   } finally {
     ws?.close();

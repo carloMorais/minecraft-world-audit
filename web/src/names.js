@@ -154,6 +154,21 @@ const GEAR = {
 };
 const ORES = { coal: 'carvão', iron: 'ferro', gold: 'ouro', diamond: 'diamante', emerald: 'esmeralda', lapis: 'lápis-lazúli', redstone: 'redstone', copper: 'cobre' };
 const SHAPES = { stairs: 'Escadas de', slab: 'Laje de', double_slab: 'Laje dupla de', wall: 'Muro de' };
+const TRIM = {
+  sentry: 'sentinela', dune: 'duna', coast: 'costa', wild: 'selvagem', ward: 'guardião', eye: 'olho', vex: 'vex', tide: 'maré',
+  snout: 'focinho', rib: 'costela', spire: 'torre', wayfinder: 'desbravador', shaper: 'modelador', raiser: 'criador', host: 'anfitrião',
+  silence: 'silêncio', flow: 'fluxo', bolt: 'parafuso',
+};
+const SHERD = {
+  angler: 'pescador', archer: 'arqueiro', arms_up: 'braços erguidos', blade: 'lâmina', brewer: 'alquimista', burn: 'chama', danger: 'perigo',
+  explorer: 'explorador', flow: 'fluxo', friend: 'amigo', guster: 'rajada', heart: 'coração', heartbreak: 'coração partido', howl: 'uivo',
+  miner: 'mineiro', mourner: 'lamentador', plenty: 'fartura', prize: 'prêmio', scrape: 'raspagem', sheaf: 'feixe', shelter: 'abrigo',
+  skull: 'caveira', snort: 'bufo',
+};
+const PATTERN = {
+  creeper: 'creeper', skull: 'caveira', flower: 'flor', mojang: 'Mojang', field_masoned: 'tijolos', bordure_indented: 'borda ondulada',
+  piglin: 'focinho', globe: 'globo', flow: 'fluxo', guster: 'rajada',
+};
 
 const lower = s => s[0].toLowerCase() + s.slice(1);
 
@@ -193,10 +208,10 @@ export function ptName(name) {
   m = name.match(/^(\w+)_spawn_egg$/);
   if (m) return `Ovo gerador de ${lower(ptName(m[1]) || m[1].replace(/_/g, ' '))}`;
   m = name.match(/^(\w+)_smithing_template$/);
-  if (m) return 'Molde de ferraria';
+  if (m) return m[1] === 'netherite_upgrade' ? 'Molde de melhoria de netherite' : `Molde de acabamento ${TRIM[m[1].replace(/_armor_trim$/, '')] || ''}`.trim();
   m = name.match(/^(\w+)_pottery_sherd$/);
-  if (m) return 'Fragmento de cerâmica';
+  if (m) return `Fragmento de cerâmica ${SHERD[m[1]] || ''}`.trim();
   m = name.match(/^(\w+)_banner_pattern$/);
-  if (m) return 'Padrão de estandarte';
+  if (m) return `Padrão de estandarte ${PATTERN[m[1]] || ''}`.trim();
   return null;
 }

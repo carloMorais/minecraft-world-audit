@@ -77,7 +77,7 @@ const PLAYER_MADE_HINTS = [
   /_glazed_terracotta$/, /^minecraft:(white|orange|magenta|light_blue|yellow|lime|pink|gray|light_gray|cyan|purple|blue|brown|green|red|black)_bed$/,
   /^minecraft:(powered|detector|activator)_rail$/, /^minecraft:tnt$/, /^minecraft:crafter$/,
   /^minecraft:(glow_)?frame$/, /^minecraft:armor_stand$/,
-  /^minecraft:(?!moss_)w+_carpet$/, /^minecraft:(oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped|pale_oak)_(hanging_)?sign$/,
+  /^minecraft:(?!moss_)\w+_carpet$/, /^minecraft:(oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped|pale_oak)_(hanging_)?sign$/,
   /^minecraft:(mangrove|cherry|bamboo|crimson|warped|pale_oak|jungle|birch)_planks$/,
   /^minecraft:(polished_)?(andesite|diorite|granite)_(stairs|slab)$/, /^minecraft:quartz_(block|bricks|pillar|stairs|slab)$/,
 ];

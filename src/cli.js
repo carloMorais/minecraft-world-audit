@@ -13,6 +13,9 @@ import { extractMisc, keyStats } from './extract/misc.js';
 import { findItems, worldItemTotals } from './extract/search.js';
 import { formatItem, stripNs } from './extract/items.js';
 import { renderSurfacePng } from './extract/surface.js';
+import {
+  chunkActivity, findBases, lagReport, oreDistribution, storageReport, gearReport, wealthReport, portalLinks,
+} from './extract/analysis.js';
 
 const HELP = `mcx — extrator de informações de mundos Minecraft Bedrock (.mcworld ou pasta do mundo)
 
@@ -35,6 +38,13 @@ Comandos:
   chunk <x> <z>           Paleta/blocos de uma coluna de chunk (coordenadas de chunk)
   map <arquivo.png>       Renderiza o mapa aéreo da dimensão (--dim) em PNG (1 pixel = 1 bloco)
   maps | villages | portals | scoreboard | structures | misc
+  bases                   Bases detectadas (heurística: blocos de construção, containers, placas, pets)
+  lag                     Chunks mais pesados (entidades, itens no chão, funis) e prováveis farms
+  ores                    Minérios por altura (Y) em cada dimensão
+  storage                 Organização: containers cheios/vazios, itens espalhados, pilhas para juntar
+  gear                    Ferramentas/armaduras gastas, equipamento sem Remendo/Inquebrável, livros
+  wealth                  Patrimônio estimado (em diamantes) por jogador e por base
+  portal-links            Ligações entre portais do Overworld e do Nether
   keys                    Índice de todas as chaves do banco LevelDB por categoria
   raw <chave>             NBT bruto de uma chave (texto, ou hex:0011aa…)
   export <pasta>          Exporta TUDO em arquivos JSON
@@ -348,6 +358,68 @@ function run(argv) {
       } else if (cmd === 'structures') {
         for (const s of data) o.l(`${s.name}: tamanho ${s.size?.join('x')} origem ${s.origin?.join(' ')} — ${s.blockTypes} tipos de bloco, ${s.entities} entidades`);
       } else o.l(toJson(data, opts.raw));
+      break;
+    }
+    case 'bases': case 'lag': case 'storage': case 'wealth': {
+      const players = load(world, 'players', cache);
+      const bes = load(world, 'blockEntities', cache);
+      const ents = load(world, 'entities', cache);
+      const rows = chunkActivity(world, bes, ents);
+      if (cmd === 'lag') {
+        data = lagReport(rows);
+        o.h('Chunks mais pesados');
+        for (const h of data.heavy.slice(0, limit)) o.l(`  ${h.dimension} chunk ${h.x},${h.z} (bloco ${h.center.join(', ')}): pontos ${h.lag} | entidades ${h.entities} | itens no chão ${h.items} | funis ${h.hoppers} | ticks pendentes ${h.pendingTicks}`);
+        o.h('Prováveis farms');
+        for (const f of data.farms.slice(0, limit)) o.l(`  ${f.count}x ${stripNs(f.type)} — ${f.dimension} perto de ${f.center.join(', ')}`);
+        break;
+      }
+      const bases = findBases({ rows, blockEntities: bes, entities: ents, players, villages: extractMisc(world, players).villages, value: true });
+      if (cmd === 'bases') {
+        data = bases;
+        o.h(`Bases detectadas (${bases.length}) — heurística`);
+        for (const b of bases.slice(0, limit)) {
+          o.l(`  #${b.id} ${b.name ? `"${b.name}" ` : ''}${b.dimension} centro ${b.center.join(', ')} | ${b.chunks} chunks | ${b.containers} containers, ${fmtNum(b.storedItems)} itens (≈${b.value} diamantes) | ${b.villagers} aldeões, ${b.pets.length} pets${b.village ? ' | dentro de vila' : ''}`);
+        }
+      } else if (cmd === 'storage') {
+        data = storageReport(bes, bases);
+        o.h(`${fmtNum(data.containers)} containers: ${fmtNum(data.slotsUsed)}/${fmtNum(data.slotsTotal)} slots usados, ${data.full} cheios, ${data.empty} vazios`);
+        o.l(`  Juntando pilhas incompletas dá para liberar ${fmtNum(data.freeableSlots)} slots`);
+        o.h('Itens espalhados em mais containers');
+        for (const i of data.scattered.slice(0, limit)) o.l(`  ${stripNs(i.item)}: ${fmtNum(i.total)} em ${i.containers} containers (${i.slots} slots, cabe em ${i.minSlots})`);
+      } else {
+        data = wealthReport(players, bes, ents, bases);
+        o.h(`Patrimônio estimado do mundo: ≈${fmtNum(data.world)} diamantes`);
+        for (const p of data.players) o.l(`  ${p.key}: ${p.total} (carregando ${p.carried}, ender chest ${p.enderChest})`);
+        o.h('Bases');
+        for (const b of data.bases) o.l(`  #${b.id} ${b.name ?? ''} ${b.center.join(', ')}: ${b.value}`);
+      }
+      break;
+    }
+    case 'ores': {
+      data = oreDistribution(world);
+      for (const [d, ores] of Object.entries(data)) {
+        o.h(`Minérios — ${d}`);
+        for (const [k, v] of Object.entries(ores)) o.l(`  ${k.padEnd(15)} ${fmtNum(v.total).padStart(12)}  melhor Y ${v.peakY} (de ${v.minY} a ${v.maxY})`);
+      }
+      break;
+    }
+    case 'gear': {
+      data = gearReport(load(world, 'players', cache), load(world, 'blockEntities', cache), load(world, 'entities', cache));
+      o.h(`Itens quase quebrando (${data.worn.length})`);
+      for (const w of data.worn.slice(0, limit)) o.l(`  ${stripNs(w.item)} ${w.left}/${w.max} (${w.percent}%) — ${w.where}${w.position ? ` @ ${pos(w.position)}` : ''}`);
+      o.h(`Equipamento sem Remendo/Inquebrável (${data.missing.length})`);
+      for (const m of data.missing.slice(0, limit)) o.l(`  ${stripNs(m.item)} falta ${m.lacks.join(', ')} — ${m.where}`);
+      o.h('Livros encantados');
+      for (const b of data.books) o.l(`  ${b.name} ${b.level}: ${b.count}`);
+      break;
+    }
+    case 'portal-links': {
+      const r = portalLinks(extractMisc(world, load(world, 'players', cache)).portals);
+      data = r;
+      for (const l of r.links) {
+        const from = r.portals[l.from], to = l.to != null ? r.portals[l.to] : null;
+        o.l(`  ${from.dimension} @ ${from.position.join(' ')} → ${to ? `${to.dimension} @ ${to.position.join(' ')}${l.twoWay ? ' (ida e volta)' : ' (volta cai em outro portal)'}` : `nenhum portal; o jogo cria um perto de ${l.target.join(', ')}`}`);
+      }
       break;
     }
     case 'keys': {

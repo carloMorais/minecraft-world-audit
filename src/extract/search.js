@@ -41,4 +41,4 @@ function worldItemTotals(players, blockEntities, entities) {
   return Object.fromEntries(Object.entries(totals).sort((a, b) => b[1] - a[1]));
 }
 
-export { findItems, worldItemTotals };
+export { findItems, worldItemTotals, itemSources };
