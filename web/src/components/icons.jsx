@@ -10,9 +10,9 @@ import { spriteShape, spriteUrl } from './sprites.js';
 
 const MATERIAL = [
   [/netherite/, '#4b4346'], [/diamond/, '#4fd8d4'], [/emerald/, '#2ecc71'], [/gold|golden/, '#f2c14e'],
-  [/iron|chain/, '#cfd6dc'], [/copper/, '#d27d55'], [/lapis/, '#3457c9'], [/redstone/, '#e0352b'],
+  [/minecart|shears|flint_and_steel|iron|chain/, '#cfd6dc'], [/copper/, '#d27d55'], [/lapis/, '#3457c9'], [/redstone/, '#e0352b'],
   [/amethyst/, '#a26be0'], [/quartz/, '#ece6dc'], [/leather|rabbit_hide|saddle/, '#9a5b33'], [/stone|cobble/, '#8d8d8d'],
-  [/wooden|stick|bowl|bow$|crossbow|fishing_rod/, '#a87c4a'], [/elytra|phantom/, '#8f8bb0'], [/turtle|scute/, '#4d9a42'],
+  [/boat|sign|painting|bed|campfire|wooden|stick|bowl|bow$|crossbow|fishing_rod/, '#a87c4a'], [/elytra|phantom/, '#8f8bb0'], [/turtle|scute/, '#4d9a42'],
   [/enchanted_book/, '#9b6bff'], [/book/, '#8a4b2a'], [/paper|map/, '#d9caa0'], [/experience_bottle/, '#9be15d'],
   [/potion|bottle/, '#e267b4'], [/ender_eye/, '#3f9f7f'], [/ender|chorus|shulker|purpur/, '#8f5aa7'],
   [/blaze|fire|lava|magma/, '#f08a24'], [/breeze|wind/, '#b7c6f0'], [/slime/, '#7ccf5b'], [/totem/, '#e8c45a'],
@@ -23,7 +23,7 @@ const MATERIAL = [
   [/sugar|snow|glass/, '#dbe7f2'], [/flint|gunpowder/, '#6b6b6b'], [/arrow|trident/, '#b49a73'], [/firework/, '#e94e77'],
   [/heart_of_the_sea|nautilus|prismarine/, '#3fb0b8'], [/glowstone|glow_/, '#f5d36b'], [/nether_star/, '#f1f3c8'],
   [/egg/, '#e8e3cf'], [/spawn_egg/, '#c9a27a'], [/wart|nether_brick/, '#8a2a2a'], [/echo/, '#1e5a63'],
-  [/seeds/, '#7fb24a'], [/compass|clock/, '#9aa0a6'], [/bucket|shears|flint_and_steel/, '#cfd6dc'], [/music_disc/, '#3a3a3a'],
+  [/seeds/, '#7fb24a'], [/spyglass/, '#d27d55'], [/compass|clock/, '#9aa0a6'], [/bucket/, '#cfd6dc'], [/bell/, '#f2c14e'], [/music_disc/, '#3a3a3a'],
 ];
 
 // Names that are clearly placed blocks even when the map palette has no exact colour for them.
