@@ -90,8 +90,36 @@ class World {
       return JSON.parse(t.replace(/^\uFEFF/, ''));
     } catch {
       try {
-        const cleaned = t.replace(/^\uFEFF/, '').replace(/\/\*[\s\S]*?\*\//g, '')
-          .replace(/^\s*\/\/.*$/gm, '').replace(/,(\s*[}\]])/g, '$1');
+        let out = '';
+        let inString = false;
+        for (let i = 0; i < t.length; i++) {
+          const c = t[i];
+          if (inString) {
+            out += c;
+            if (c === '\\') {
+              i++;
+              if (i < t.length) out += t[i];
+            } else if (c === '"') {
+              inString = false;
+            }
+          } else {
+            if (c === '"') {
+              inString = true;
+              out += c;
+            } else if (c === '/' && t[i + 1] === '/') {
+              i += 2;
+              while (i < t.length && t[i] !== '\n' && t[i] !== '\r') i++;
+              i--;
+            } else if (c === '/' && t[i + 1] === '*') {
+              i += 2;
+              while (i < t.length - 1 && !(t[i] === '*' && t[i + 1] === '/')) i++;
+              i++; // skip the '/' part of '*/'
+            } else {
+              out += c;
+            }
+          }
+        }
+        const cleaned = out.replace(/^\uFEFF/, '').replace(/,(\s*[}\]])/g, '$1');
         return JSON.parse(cleaned);
       } catch { return null; }
     }
