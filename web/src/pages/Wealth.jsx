@@ -1,4 +1,4 @@
-import { Coins, Info, Users, Castle, Gem, Sparkles } from 'lucide-react';
+import { Coins, Info, Users, Castle, Gem, Sparkles, Trash2 } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { Panel, Async, BarList, StatCard, Empty, CoordLink } from '../components/ui.jsx';
 import { ItemIcon } from '../components/icons.jsx';
@@ -80,6 +80,15 @@ export default function Wealth({ go }) {
                     empty="Nenhuma base guarda itens de valor"
                   />
                 </Panel>
+                {W.hoarders?.length > 0 && (
+                  <Panel title="Acumuladores (Hoarders)" icon={Trash2} actions={<small className="muted">itens comuns/lixo (pedra, terra, etc.)</small>}>
+                    <BarList
+                      rows={W.hoarders.map(p => ({ key: p.key, label: names.get(p.key) || p.key, value: p.junk, color: 'var(--red)', hint: `${names.get(p.key)}: acumulou ${fmt(p.junk)} itens comuns/lixo` }))}
+                      format={fmt}
+                      onSelect={r => go('players', { p: r.key })}
+                    />
+                  </Panel>
+                )}
               </div>
               <Panel title="Itens mais valiosos" icon={Gem} pad={false}>
                 {W.top.length === 0 ? <Empty text="Nenhum item valioso encontrado" /> : (

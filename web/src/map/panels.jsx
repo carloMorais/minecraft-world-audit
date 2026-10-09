@@ -329,6 +329,27 @@ function BiomesPanel({ biomes, hoverBiome, biome, setBiome }) {
 const ITEM_QUICK = ['diamond', 'netherite', 'elytra', 'totem', 'shulker_box', 'enchanted_book', 'beacon|nether_star'];
 const BLOCK_QUICK = ['diamond_ore', 'ancient_debris', 'spawner|mob_spawner', 'beacon', 'end_portal_frame', 'enchanting_table', 'bed'];
 
+function AnimalsPanel({ markers, dim, jump, select, selected }) {
+  const pets = markers.filter(m => m.layer === 'pets');
+
+  if (!pets.length) return <p className="muted small">Nenhum animal nomeado ou de estimação nesta dimensão.</p>;
+
+  return (
+    <>
+      <h4>Zoológico e Pets <span className="muted">{fmt(pets.length)}</span></h4>
+      <List rows={pets.map(m => ({
+        key: m.key,
+        icon: <PawPrint size={20} />,
+        title: m.label,
+        sub: m.detail,
+        right: `${Math.round(m.x)}, ${Math.round(m.z)}`,
+        active: m === selected,
+        onClick: () => select(m)
+      }))} />
+    </>
+  );
+}
+
 function GraveyardPanel({ markers, dim, jump, select, selected }) {
   const deaths = markers.filter(m => m.layer === 'deaths');
 
@@ -395,6 +416,7 @@ function SearchPanel({ search, setSearch, searchState, hits, dim, jump, select, 
 /** Ready-made combinations of layers + overlay + side panel. */
 export const VIEWS = [
   { id: 'all', label: 'Tudo', icon: Layers, layers: ['players', 'spawns', 'deaths', 'world', 'portals', 'villages', 'pets', 'containers'], Panel: AllPanel },
+  { id: 'animals', label: 'Zoológico e Pets', icon: PawPrint, layers: ['pets'], Panel: AnimalsPanel },
   { id: 'graveyard', label: 'Cemitério', icon: MapPin, layers: ['deaths', 'players'], Panel: GraveyardPanel },
   { id: 'bases', label: 'Bases', icon: Castle, layers: ['bases', 'players', 'spawns'], overlay: 'build', Panel: BasesPanel },
   { id: 'containers', label: 'Baús', icon: Archive, layers: ['containers'], Panel: ContainersPanel },

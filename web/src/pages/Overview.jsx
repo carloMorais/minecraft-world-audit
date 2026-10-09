@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '../client.js';
-import { Panel, StatCard, BarList, PieChart, Async, Badge } from '../components/ui.jsx';
+import { Panel, StatCard, BarList, Async, Badge } from '../components/ui.jsx';
 import { MobIcon, ItemIcon } from '../components/icons.jsx';
 import { TREASURES, treasureCount } from '../treasures.js';
 import { fmt, fmtCompact, mobName, DIM_LABEL, DIM_COLOR, GAMEMODE_LABEL, DIFFICULTY_LABEL, timeAgo, pos, sortDims, playerNames, isHost, blockEntityLabel } from '../format.js';
@@ -92,7 +92,7 @@ function Treasures({ totals, go }) {
 
 const MAP_VIEWS = [
   ['bases', 'Bases', Castle], ['containers', 'Baús', Archive], ['villagers', 'Vilas e aldeões', Store], ['portals', 'Portais', Waypoints],
-  ['mobs', 'Mobs', PawPrint], ['lag', 'Lag e farms', Gauge], ['biomes', 'Biomas', Trees], ['graveyard', 'Cemitério', MapPin]
+  ['mobs', 'Mobs', PawPrint], ['animals', 'Zoológico e Pets', PawPrint], ['lag', 'Lag e farms', Gauge], ['biomes', 'Biomas', Trees], ['graveyard', 'Cemitério', MapPin]
 ];
 
 export default function Overview({ icon, go }) {
@@ -145,10 +145,10 @@ export default function Overview({ icon, go }) {
 
             <div className="grid-2">
               <Panel title="Mobs mais comuns" icon={PawPrint} actions={<button type="button" className="link-btn" onClick={() => go('map', { view: 'mobs' })}>No mapa →</button>}>
-                <PieChart data={topMobs.map(([t, n], i) => ({ key: t, label: mobName(t), value: n, color: `hsl(${260 + i * 20}, 70%, 65%)` }))} format={fmtCompact} />
+                <BarList rows={topMobs.map(([t, n]) => ({ key: t, label: mobName(t), value: n, icon: <MobIcon id={t} size={22} />, color: 'var(--purple)' }))} limit={10} format={fmt} onSelect={r => go('map', { view: 'mobs', cat: 'all', type: r.key })} />
               </Panel>
               <Panel title="Blocos especiais" icon={Archive}>
-                <PieChart data={Object.entries(S.blockEntities.byType).sort((a, b) => b[1] - a[1]).map(([t, n], i) => ({ key: t, label: blockEntityLabel(t, CONTAINER_LABEL), value: n, color: `hsl(${30 + i * 15}, 80%, 55%)` }))} format={fmtCompact} />
+                <BarList rows={Object.entries(S.blockEntities.byType).map(([t, n]) => ({ key: t, label: blockEntityLabel(t, CONTAINER_LABEL), value: n, color: 'var(--orange)', hint: `${t}: ${fmt(n)}` }))} limit={10} format={fmt} />
               </Panel>
             </div>
           </>
