@@ -72,6 +72,7 @@ function formatItem(it) {
   if (it.durabilityUsed) s += ` (dano ${it.durabilityUsed})`;
   if (it.book?.title) s += ` livro "${it.book.title}" por ${it.book.author}`;
   if (it.contents) s += ` {${it.contents.length} itens dentro}`;
+  if (it.path?.length) s += ` [em ${it.path.join(' > ')}]`;
   return s;
 }
 
