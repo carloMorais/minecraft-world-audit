@@ -26,7 +26,21 @@ const ORES = [
   ['nether_gold', /^minecraft:nether_gold_ore$/],
   ['ancient_debris', /^minecraft:ancient_debris$/],
 ];
-const oreOf = name => ORES.find(([, re]) => re.test(name))?.[0];
+const EXACT_ORES = new Map();
+const addOre = (name, variations) => variations.forEach(v => EXACT_ORES.set(`minecraft:${v}`, name));
+addOre('coal', ['coal_ore', 'deepslate_coal_ore']);
+addOre('copper', ['copper_ore', 'deepslate_copper_ore']);
+addOre('iron', ['iron_ore', 'deepslate_iron_ore']);
+addOre('gold', ['gold_ore', 'deepslate_gold_ore']);
+addOre('redstone', ['redstone_ore', 'deepslate_redstone_ore', 'lit_redstone_ore', 'lit_deepslate_redstone_ore']);
+addOre('lapis', ['lapis_ore', 'deepslate_lapis_ore']);
+addOre('diamond', ['diamond_ore', 'deepslate_diamond_ore']);
+addOre('emerald', ['emerald_ore', 'deepslate_emerald_ore']);
+addOre('quartz', ['quartz_ore']);
+addOre('nether_gold', ['nether_gold_ore']);
+addOre('ancient_debris', ['ancient_debris']);
+
+const oreOf = name => EXACT_ORES.get(name);
 // Planks of rarer woods are in the census hints, but mansions and villages are made of them.
 const isPlayerMade = name => !/_planks$/.test(name) && PLAYER_MADE_HINTS.some(re => re.test(name));
 
