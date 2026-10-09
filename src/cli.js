@@ -1,3 +1,4 @@
+import { parseArgs } from 'util';
 import { Buffer } from 'buffer';
 import fs from 'fs';
 import path from 'path';
@@ -62,14 +63,26 @@ Opções:
 
 const DIM_IDS = { overworld: 0, nether: 1, the_end: 2, end: 2 };
 
-function parseArgs(argv) {
-  const opts = { _: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--json' || a === '--raw' || a === '--states' || a === '-h' || a === '--help') opts[a.replace(/^-+/, '')] = true;
-    else if (a.startsWith('--')) opts[a.slice(2)] = argv[++i];
-    else opts._.push(a);
-  }
+function parseArgsWrapper(argv) {
+  const { values, positionals } = parseArgs({
+    args: argv,
+    options: {
+      json: { type: 'boolean' },
+      out: { type: 'string' },
+      raw: { type: 'boolean' },
+      dim: { type: 'string' },
+      box: { type: 'string' },
+      states: { type: 'boolean' },
+      limit: { type: 'string' },
+      type: { type: 'string' },
+      help: { type: 'boolean', short: 'h' },
+      'no-blocks': { type: 'boolean' }
+    },
+    allowPositionals: true,
+    strict: false
+  });
+  const opts = { ...values, _: positionals };
+  if (opts.help) opts.h = true; // backward compatibility for options checking opts.h
   return opts;
 }
 
@@ -230,7 +243,7 @@ function keyFromArg(arg) {
 }
 
 function run(argv) {
-  const opts = parseArgs(argv);
+  const opts = parseArgsWrapper(argv);
   if (opts.help || opts.h || opts._.length === 0) { process.stdout.write(HELP); return 0; }
   let [cmd, target, ...rest] = opts._;
   if (!target && fs.existsSync(cmd)) { target = cmd; cmd = 'summary'; }

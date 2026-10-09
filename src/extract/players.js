@@ -113,4 +113,4 @@ function extractPlayers(world) {
   return players;
 }
 
-export { extractPlayers, decodePlayer, num };
+export { extractPlayers, decodePlayer, num, attributes };
