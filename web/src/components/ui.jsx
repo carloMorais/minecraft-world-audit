@@ -105,6 +105,41 @@ export function Modal({ icon: Icon, title, children, actions, onClose, tone = 'g
 }
 
 /** Horizontal bars. rows: [{label, value, color?, icon?, hint?}] */
+/** PieChart that uses CSS conic gradients */
+export function PieChart({ data, total, format = fmtCompact, className = '' }) {
+  if (!data?.length) return <Empty text="Nada aqui" />;
+  const top = data.slice(0, 6); // max 6 slices for readability
+  const others = data.slice(6).reduce((a, r) => a + r.value, 0);
+  if (others > 0) top.push({ key: 'outros', label: 'Outros', value: others, color: '#444' });
+  const sum = total ?? top.reduce((a, r) => a + r.value, 0);
+  let acc = 0;
+  const slices = top.map(r => {
+    const start = acc;
+    const pct = (r.value / sum) * 100;
+    acc += pct;
+    return `${r.color || 'var(--accent)'} ${start}% ${acc}%`;
+  }).join(', ');
+  return (
+    <div className={`chart-panel-body ${className}`}>
+      <div className="pie-chart" style={{ '--pie-slices': slices }}>
+        <div className="pie-chart-inner">
+          <b>{format(sum)}</b>
+          <small>Total</small>
+        </div>
+      </div>
+      <div className="chart-legend">
+        {top.map(r => (
+          <div key={r.key} className="legend-item">
+            <span className="dot" style={{ background: r.color || 'var(--accent)' }} />
+            <span>{r.label}</span>
+            <b>{format(r.value)}</b>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function BarList({ rows, max, limit = 12, format = fmtCompact, onSelect, empty = 'Nada aqui' }) {
   const [all, setAll] = useState(false);
   if (!rows?.length) return <Empty text={empty} />;

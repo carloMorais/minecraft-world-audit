@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 export function parseHash() {
   const raw = window.location.hash.slice(1);
   const i = raw.indexOf('?');
-  const page = (i < 0 ? raw : raw.slice(0, i)) || 'overview';
+  const page = (i < 0 ? raw : raw.slice(0, i)) || 'map';
   const params = Object.fromEntries(new URLSearchParams(i < 0 ? '' : raw.slice(i + 1)));
   return { page, params };
 }

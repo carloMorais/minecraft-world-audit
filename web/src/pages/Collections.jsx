@@ -1,4 +1,5 @@
-import { Trophy, PawPrint, Trees, Info, Skull, Sparkles } from 'lucide-react';
+import { Trophy, PawPrint, Trees, Info, Skull, Sparkles, Filter } from 'lucide-react';
+import { useState } from 'react';
 import { useQuery } from '../client.js';
 import { Panel, Loading, ErrorBox, StatCard } from '../components/ui.jsx';
 import { ItemIcon, MobIcon } from '../components/icons.jsx';
@@ -16,16 +17,18 @@ function Progress({ have, total }) {
 }
 
 /** A checklist panel: owned entries in full colour, missing ones faded. */
-function Checklist({ title, icon, hint, entries }) {
+function Checklist({ title, icon, hint, entries, hideMissing }) {
   const have = entries.filter(e => e.have).length;
+  const isComplete = have === entries.length;
   return (
-    <Panel title={title} icon={icon} actions={<Progress have={have} total={entries.length} />}>
+    <Panel title={title} icon={icon} actions={<Progress have={have} total={entries.length} />} className={isComplete ? 'panel-complete' : ''}>
       {hint && <p className="muted small coll-hint">{hint}</p>}
       <div className="coll-grid">
         {entries.map(e => {
+          const isHidden = hideMissing && !e.have;
           const Tag = e.onClick ? 'button' : 'div';
           return (
-            <Tag key={e.key} type={e.onClick ? 'button' : undefined} className={`coll-tile${e.have ? ' have' : ''}`} onClick={e.onClick} title={e.have ? `${e.label}${e.count ? `: ${fmt(e.count)}` : ''}` : `${e.label} (falta)`}>
+            <Tag key={e.key} type={e.onClick ? 'button' : undefined} className={`coll-tile${e.have ? ' have' : ''}${isHidden ? ' hidden' : ''}`} onClick={e.onClick} title={e.have ? `${e.label}${e.count ? `: ${fmt(e.count)}` : ''}` : `${e.label} (falta)`}>
               <span className="coll-icon">{e.icon}</span>
               <span className="coll-label">{e.label}</span>
               {e.have && e.count != null && <small>{e.countLabel ?? fmt(e.count)}</small>}
@@ -75,6 +78,8 @@ function Achievements({ S, go }) {
 }
 
 export default function Collections({ go }) {
+  const [filter, setFilter] = useState('all');
+  const [hideMissing, setHideMissing] = useState(false);
   const items = useQuery('items');
   const summary = useQuery('summary');
   const biomes = useQuery('biomes');
@@ -124,14 +129,28 @@ export default function Collections({ go }) {
             <StatCard icon={PawPrint} label="Mobs domados" value={`${tameEntries.filter(e => e.have).length}/${tameEntries.length}`} sub="espécies com dono no mundo" tone="purple" />
             <StatCard icon={Trees} label="Biomas visitados" value={biomes.data ? `${biomeLists.reduce((s, l) => s + l.entries.filter(e => e.have).length, 0)}/${biomeLists.reduce((s, l) => s + l.entries.length, 0)}` : '…'} sub="nas áreas já geradas" tone="green" />
           </div>
+
+          <div className="coll-filters">
+            <Filter size={16} color="var(--muted)" />
+            <button type="button" className={`coll-filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Tudo</button>
+            <button type="button" className={`coll-filter-btn ${filter === 'items' ? 'active' : ''}`} onClick={() => setFilter('items')}>Itens</button>
+            <button type="button" className={`coll-filter-btn ${filter === 'mobs' ? 'active' : ''}`} onClick={() => setFilter('mobs')}>Mobs</button>
+            <button type="button" className={`coll-filter-btn ${filter === 'biomes' ? 'active' : ''}`} onClick={() => setFilter('biomes')}>Biomas</button>
+
+            <label className="coll-switch">
+              Ocultar itens faltantes
+              <input type="checkbox" checked={hideMissing} onChange={(e) => setHideMissing(e.target.checked)} />
+            </label>
+          </div>
+
           <div className="note"><Info size={15} /><span>Conta itens guardados em qualquer lugar: inventários, ender chests, baús, shulkers, molduras e mobs. Itens que já foram usados ou perdidos não aparecem. Clique em um item para ver onde ele está.</span></div>
           <div className="grid-2 coll-cols">
-            {lists.map(l => <Checklist key={l.key} title={l.label} icon={Trophy} hint={l.hint} entries={l.entries} />)}
-            <Checklist title="Mobs domados" icon={PawPrint} hint="Pets e montarias com dono, salvos no mundo agora" entries={tameEntries} />
+            {(filter === 'all' || filter === 'items') && lists.map(l => <Checklist key={l.key} title={l.label} icon={Trophy} hint={l.hint} entries={l.entries} hideMissing={hideMissing} />)}
+            {(filter === 'all' || filter === 'mobs') && <Checklist title="Mobs domados" icon={PawPrint} hint="Pets e montarias com dono, salvos no mundo agora" entries={tameEntries} hideMissing={hideMissing} />}
           </div>
-          {biomes.loading && <Loading text="Lendo biomas…" />}
-          {biomes.data && biomeLists.map(l => (
-            <Checklist key={l.dim} title={`Biomas — ${DIM_LABEL[l.dim]}`} icon={Trees} hint="Gerado não é o mesmo que visitado a pé: entra todo bioma que existe nos chunks salvos." entries={l.entries} />
+          {biomes.loading && (filter === 'all' || filter === 'biomes') && <Loading text="Lendo biomas…" />}
+          {biomes.data && (filter === 'all' || filter === 'biomes') && biomeLists.map(l => (
+            <Checklist key={l.dim} title={`Biomas — ${DIM_LABEL[l.dim]}`} icon={Trees} hint="Gerado não é o mesmo que visitado a pé: entra todo bioma que existe nos chunks salvos." entries={l.entries} hideMissing={hideMissing} />
           ))}
         </>
       )}

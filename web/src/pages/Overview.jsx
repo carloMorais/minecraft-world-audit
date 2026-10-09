@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '../client.js';
-import { Panel, StatCard, BarList, Async, Badge } from '../components/ui.jsx';
+import { Panel, StatCard, BarList, PieChart, Async, Badge } from '../components/ui.jsx';
 import { MobIcon, ItemIcon } from '../components/icons.jsx';
 import { TREASURES, treasureCount } from '../treasures.js';
 import { fmt, fmtCompact, mobName, DIM_LABEL, DIM_COLOR, GAMEMODE_LABEL, DIFFICULTY_LABEL, timeAgo, pos, sortDims, playerNames, isHost, blockEntityLabel } from '../format.js';
@@ -123,29 +123,32 @@ export default function Overview({ icon, go }) {
 
             <div className="grid-2">
               {players.data && <PlayersPanel players={players.data} go={go} />}
-              <Panel title="Exploração por dimensão" icon={Mountain}>
-                <div className="dim-bars">
-                  {sortDims(Object.keys(S.coverage)).map(d => [d, S.coverage[d]]).map(([d, c]) => (
-                    <button type="button" key={d} className="dim-bar" onClick={() => go('map', { dim: d })} title={`Abrir o mapa do ${DIM_LABEL[d]}`}>
-                      <div className="dim-bar-head"><span className="dot" style={{ background: DIM_COLOR[d] }} />{DIM_LABEL[d]}<b>{fmt(c.chunks)} chunks</b></div>
-                      <div className="track"><span style={{ width: `${(100 * c.chunks) / totalChunks}%`, background: DIM_COLOR[d] }} /></div>
-                      <small>x {fmt(c.boundsBlocks.x[0])} → {fmt(c.boundsBlocks.x[1])} · z {fmt(c.boundsBlocks.z[0])} → {fmt(c.boundsBlocks.z[1])}</small>
-                    </button>
-                  ))}
+              <details className="panel panel-collapsible" open>
+                <summary><h3><Mountain size={16} />Exploração por dimensão</h3></summary>
+                <div className="panel-body">
+                  <div className="dim-bars">
+                    {sortDims(Object.keys(S.coverage)).map(d => [d, S.coverage[d]]).map(([d, c]) => (
+                      <button type="button" key={d} className="dim-bar" onClick={() => go('map', { dim: d })} title={`Abrir o mapa do ${DIM_LABEL[d]}`}>
+                        <div className="dim-bar-head"><span className="dot" style={{ background: DIM_COLOR[d] }} />{DIM_LABEL[d]}<b>{fmt(c.chunks)} chunks</b></div>
+                        <div className="track"><span style={{ width: `${(100 * c.chunks) / totalChunks}%`, background: DIM_COLOR[d] }} /></div>
+                        <small>x {fmt(c.boundsBlocks.x[0])} → {fmt(c.boundsBlocks.x[1])} · z {fmt(c.boundsBlocks.z[0])} → {fmt(c.boundsBlocks.z[1])}</small>
+                      </button>
+                    ))}
+                  </div>
+                  <h4 className="sub-head">Explorar no mapa</h4>
+                  <div className="view-links">
+                    {MAP_VIEWS.map(([id, label, Icon]) => <button type="button" key={id} className="chip" onClick={() => go('map', { view: id })}><Icon size={14} /> {label}</button>)}
+                  </div>
                 </div>
-                <h4 className="sub-head">Explorar no mapa</h4>
-                <div className="view-links">
-                  {MAP_VIEWS.map(([id, label, Icon]) => <button type="button" key={id} className="chip" onClick={() => go('map', { view: id })}><Icon size={14} /> {label}</button>)}
-                </div>
-              </Panel>
+              </details>
             </div>
 
             <div className="grid-2">
               <Panel title="Mobs mais comuns" icon={PawPrint} actions={<button type="button" className="link-btn" onClick={() => go('map', { view: 'mobs' })}>No mapa →</button>}>
-                <BarList rows={topMobs.map(([t, n]) => ({ key: t, label: mobName(t), value: n, icon: <MobIcon id={t} size={22} />, color: 'var(--purple)' }))} limit={10} format={fmt} onSelect={r => go('map', { view: 'mobs', cat: 'all', type: r.key })} />
+                <PieChart data={topMobs.map(([t, n], i) => ({ key: t, label: mobName(t), value: n, color: `hsl(${260 + i * 20}, 70%, 65%)` }))} format={fmtCompact} />
               </Panel>
               <Panel title="Blocos especiais" icon={Archive}>
-                <BarList rows={Object.entries(S.blockEntities.byType).map(([t, n]) => ({ key: t, label: blockEntityLabel(t, CONTAINER_LABEL), value: n, color: 'var(--orange)', hint: `${t}: ${fmt(n)}` }))} limit={10} format={fmt} />
+                <PieChart data={Object.entries(S.blockEntities.byType).sort((a, b) => b[1] - a[1]).map(([t, n], i) => ({ key: t, label: blockEntityLabel(t, CONTAINER_LABEL), value: n, color: `hsl(${30 + i * 15}, 80%, 55%)` }))} format={fmtCompact} />
               </Panel>
             </div>
           </>
