@@ -1059,6 +1059,7 @@ export const rules = [
   [/^small_dripleaf(_block)?$/, 'small_dripleaf'],
   [/^mangrove_sapling$/, 'mangrove_propagule'],
   [/^(crimson|warped)_roots$/, 'roots', (n, m) => (m[1] === 'crimson' ? '#b0262a' : '#18a090')],
+  [/^cave_vines(?:_(?:body|head)_with_berries)?$/, 'glow_berries'],
   [/^weeping_vines$/, 'weeping_vines', '#b0262a'],
   [/^twisting_vines$/, 'twisting_vines', '#18a090'],
   [/^(dead_)?brain_coral$/, 'brain_coral', coral],

@@ -401,6 +401,7 @@ export const sprites = {
     '........oDo.....',
     '.........o......',
   ]),
+  bowl: s({ ...BOWL, S: '#3a2610', s: '#4a3216' }, SOUP),
   beetroot_soup: s({ ...BOWL, S: '#a8202e', s: '#d04050' }, SOUP),
   mushroom_stew: s({ ...BOWL, S: '#c8a274', s: '#e6c89c', c: '#f0e2c4', p: '#8a5a3a' }, STEW),
   rabbit_stew: s({ ...BOWL, S: '#8a5a2a', s: '#b07a40', c: '#e0882a', p: '#e0c070' }, STEW),
@@ -622,5 +623,6 @@ export const rules = [
     'tropical_fish', 'pufferfish', 'wheat', 'wheat_seeds', 'pumpkin_seeds', 'melon_seeds', 'beetroot_seeds', 'torchflower_seeds',
     'pitcher_pod', 'cocoa_beans', 'nether_wart', 'sugar_cane', 'kelp', 'bamboo'].map(n => [new RegExp(`^${n}$`), n]),
   [/^suspicious_stew$/, 'mushroom_stew'],
+  [/^bowl$/, 'bowl'],
   [/^seeds$/, 'wheat_seeds'],
 ];

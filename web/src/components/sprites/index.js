@@ -16,24 +16,24 @@ import * as blockitems from './items/blockitems.js';
 
 const GROUPS = [tools, gear, materials, food, plants, blockitems];
 
-// Add-on items we know nothing about: a tinted pouch.
+// Add-on items we know nothing about: a pale cloth sack tied with string, tinted per id.
 const UNKNOWN = {
-  pal: { o: '@0', d: '@1', s: '@2', a: '@3', l: '@4', w: '@5', t: '%3', T: '%2' },
+  pal: { o: '@0', d: '@1', s: '@2', a: '@3', l: '@4', w: '@5', t: '#a08458', T: '#5e4a2e' },
   rows: [
     '................',
     '................',
-    '......oooo......',
-    '.....oTttTo.....',
-    '......oTTo......',
-    '.....oo..oo.....',
-    '....odllaado....',
-    '...odlwlaaasdo..',
+    '....oo.oo.oo....',
+    '....olollolso...',
+    '.....olaaaso....',
+    '......oaaso.....',
+    '.....otTTTto....',
+    '....olaaaaaso...',
     '...olwlaaaaasdo.',
-    '..odlaaaaaaasdo.',
+    '..olwlaaaaaassdo',
     '..olaaaaaaaasdo.',
     '..oaaaaaaaassdo.',
-    '..osaaaaaassddo.',
-    '...osssssssddo..',
+    '..osaaaaaasssdo.',
+    '...ossssssssdo..',
     '....oooooooooo..',
     '................',
   ],
@@ -62,7 +62,7 @@ const ALIASES = {
 function hashColor(s) {
   let h = 0;
   for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return `hsl(${h % 360} 40% 55%)`;
+  return `hsl(${h % 360} 28% 70%)`;
 }
 
 /** Canonical (Java-style) name for an id: namespace stripped, Bedrock aliases applied. */

@@ -190,6 +190,46 @@ const saddle = [
 ];
 
 // Bucket: iron body; f/F/g are the contents (tint B), the dark inside when empty.
+// Happy ghast harness: dyed padding (tint), leather straps (L) and goggles (b glass).
+const harness = [
+  '................',
+  '................',
+  '...GGGG..GGGG...',
+  '..GbcbG..GbcbG..',
+  '..GbbBGLLGbbBG..',
+  '...GGGG..GGGG...',
+  '....L......L....',
+  '...oLooooooLo...',
+  '..olLllllllLao..',
+  '.olaLaaaaaaLaso.',
+  '.oaaLLLLLLLLsdo.',
+  '.osaLaaaaaaLsdo.',
+  '..osLssssssLdo..',
+  '...oLooooooLo...',
+  '....T......T....',
+  '................',
+];
+
+// Nautilus armour: a ridged shell cap in the material's colours, with leather straps.
+const nautilusArmor = [
+  '................',
+  '................',
+  '......ooooo.....',
+  '....oowlllaoo...',
+  '...owllaaaaasso.',
+  '..owlaaddddaasdo',
+  '..olaadaaaadasdo',
+  '.owlaadaddadasdo',
+  '.olaaadaaadaasdo',
+  '.olaaaaddddaasdo',
+  '.oaaaaaaaaaassdo',
+  '.osaaaaaaaassddo',
+  '..ossssssssddo..',
+  '...oooooooooo...',
+  '....LL....LL....',
+  '....GG....GG....',
+];
+
 const bucket = [
   '................',
   '................',
@@ -519,6 +559,8 @@ export const sprites = {
   bucket: { pal: { ...IRON, f: '%3', F: '%4', g: '%2' }, rows: bucket },
   fish_bucket: { pal: { ...IRON, f: '#3f76e4', F: '#6b98ef', g: '#2c58b8', x: '@3', X: '@1', E: '#101010' }, rows: fishBucket },
   bundle: { pal: { ...MAT, t: '#e6d7b0', T: '#8f7a52' }, rows: bundle },
+  harness: { pal: { ...MAT, G: '#3b2a1a', L: '#7a5232', b: '#7cc4e4', B: '#3f86b8', c: '#e8fbff', T: '#c6c6c6' }, rows: harness },
+  nautilus_armor: { pal: { ...MAT, L: '#7a5232', G: '#3b2a1a' }, rows: nautilusArmor },
   minecart: { pal: IRON, rows: minecart },
   ...Object.fromEntries(Object.keys(CARGO).map(k => [`${k}_minecart`, { pal: { ...IRON, ...CARGO_PAL, l: '#b8945f', a: '#896727', s: '#684e1e', d: '#49361b', o: '#28190a' }, rows: cargoSprite(k) }])),
   boat: { pal: { ...MAT, ...WOOD }, rows: boat },
@@ -543,6 +585,8 @@ export const rules = [
     a: (m[1] || m[2]) === 'leather' ? LEATHER_ARMOR : ARMOR_RAMP[m[1] || m[2]],
   })],
   [/^wolf_armor$/, 'wolf_armor', '#ad716d'],
+  [/^(?:(leather|iron|golden|diamond|netherite|copper)_)?nautilus_armor$/, 'nautilus_armor', (name, m) => ({ a: ARMOR_RAMP[m[1]] || RAMPS.iron })],
+  [/^(?:(\w+)_)?harness$/, 'harness', (name, m) => ({ a: DYES[m[1]] || DYES.white })],
   [/^elytra$/, 'elytra', '#8e8aa8'],
   [/^saddle$/, 'saddle', 'leather'],
   [/^bucket$/, 'bucket', { b: '#3a3a3a' }],

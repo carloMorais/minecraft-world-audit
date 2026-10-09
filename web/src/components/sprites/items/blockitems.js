@@ -821,6 +821,51 @@ export const sprites = {
     ],
   },
 
+  // the creative-only light block: a lit bulb
+  light: {
+    pal: { o: '#5a4a10', Y: '#ffe85a', y: '#e8b820', W: '#ffffe0', g: '#c6c6c6', G: '#7e7e7e' },
+    rows: [
+      '................',
+      '......oooo......',
+      '....ooYYYYoo....',
+      '...oYWWYYYYYo...',
+      '..oYWWYYYYYYyo..',
+      '..oYWYYYYYYYyo..',
+      '..oYYYYYYYYYyo..',
+      '..oYYYYYYYYyyo..',
+      '...oYYYYYYyyo...',
+      '....oYYYYyyo....',
+      '.....oyYYyo.....',
+      '.....oggggo.....',
+      '.....oGGGGo.....',
+      '.....oggggo.....',
+      '......oGGo......',
+      '................',
+    ],
+  },
+  // structure void: an empty dashed box
+  structure_void: {
+    pal: { p: '#f0dcf6', P: '#c27ad8' },
+    rows: [
+      '................',
+      '................',
+      '..ppp..pp..ppp..',
+      '..p..........p..',
+      '..p..........p..',
+      '................',
+      '................',
+      '..p....PP....p..',
+      '..p....PP....p..',
+      '................',
+      '................',
+      '..p..........p..',
+      '..p..........p..',
+      '..ppp..pp..ppp..',
+      '................',
+      '................',
+    ],
+  },
+
   barrier: round({ r: '#e82020', R: '#a00c0c' }, (x, y, d) => {
     if (d >= 5.2 && d <= 7.2) return d > 6.4 ? 'R' : 'r';
     if (d < 5.2 && Math.abs(x - y) <= 1) return Math.abs(x - y) === 1 ? 'R' : 'r';
@@ -870,4 +915,5 @@ export const rules = [
   [/^small_amethyst_bud$/, 'small_amethyst_bud'], [/^medium_amethyst_bud$/, 'medium_amethyst_bud'],
   [/^large_amethyst_bud$/, 'large_amethyst_bud'], [/^amethyst_cluster$/, 'amethyst_cluster'],
   [/^sculk_vein$/, 'sculk_vein'], [/^conduit$/, 'conduit'], [/^barrier$/, 'barrier'],
+  [/^light(?:_block(?:_\d+)?)?$/, 'light'], [/^structure_void$/, 'structure_void'],
 ];

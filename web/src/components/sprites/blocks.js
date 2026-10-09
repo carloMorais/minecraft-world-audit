@@ -132,6 +132,286 @@ function stripesV(base, seed, { amp = 0.1, every = 3 } = {}) {
   return tex((x) => tone(C(base), x % every === 0 ? 1 - amp : q(1 + (r() - 0.3) * amp)));
 }
 
+// Hand-drawn layer: 16 strings of 16 characters, '.' keeps the texel underneath. Palette values
+// are '#rrggbb(aa)' colours, [r, g, b, a] arrays or numbers (a brightness factor on the texel below).
+function paint(t, rows, pal) {
+  const p = Object.fromEntries(Object.entries(pal).map(([k, v]) => [k, typeof v === 'string' ? [...C(v), v.length === 9 ? parseInt(v.slice(7), 16) : 255] : v]));
+  return overlay(t, (x, y, px) => { const v = p[rows[y][x]]; return v === undefined ? null : typeof v === 'number' ? tone(px, v, px[3]) : v; });
+}
+const blank = () => tex(() => [0, 0, 0, 0]);
+const frame = (x, y, w = 1) => x < w || y < w || x > 15 - w || y > 15 - w;
+
+// wandering 1-texel lines (roots, drips, cracks): `n` walks of `len` steps from random starts
+function walks(seed, n, len, { down = true } = {}) {
+  const r = rng(seed), set = new Set();
+  for (let i = 0; i < n; i++) {
+    let x = r() * 16 | 0, y = down ? r() * 4 | 0 : r() * 16 | 0;
+    for (let k = 0; k < len; k++) {
+      set.add(((y + 16) % 16) * 16 + ((x + 16) % 16));
+      if (down) { y++; if (r() < 0.35) x += r() < 0.5 ? -1 : 1; } else if (r() < 0.5) x += r() < 0.5 ? -1 : 1; else y += r() < 0.5 ? -1 : 1;
+    }
+  }
+  return set;
+}
+
+// mottled texture in a few quantised tones (moss, warts, amethyst)
+function mottle(base, seed, { tones = [0.7, 0.85, 1, 1, 1.15], cell = 4, blend = 0.5 } = {}) {
+  const r = rng(seed), vn = valueNoise(r, cell);
+  return tex((x, y) => tone(C(base), tones[Math.min(tones.length - 1, Math.floor((vn(x, y) * blend + r() * (1 - blend)) * tones.length))]));
+}
+
+function rings(outer, inner, seed, { step = 1.3 } = {}) {
+  const r = rng(seed);
+  return tex((x, y) => tone(C(Math.floor(Math.hypot(x - 7.5, y - 7.5) / step) % 2 ? outer : inner), q(1 + (r() - 0.5) * 0.1)));
+}
+
+// Blocks with a texture of their own (work stations, sculk, nether and cave blocks…), or null.
+function specialTextures(mat, s) {
+  const same = t => ({ top: t, side: t });
+  switch (mat) {
+    case 'respawn_anchor': {
+      const ob = noisy('#1a1426', s, { amp: 0.2, cell: 4 }), drip = walks(s, 6, 6);
+      const side = overlay(ob, (x, y) => (y < 3 ? tone(C('#3a3346'), y === 0 ? 1.3 : 1) : y > 13 ? tone(C('#2b2535'), 1) : drip.has(y * 16 + x) ? tone(C('#a43df0'), 1.25 - y * 0.04) : null));
+      return { top: overlay(ob, (x, y) => (frame(x, y, 3) ? tone(C('#3a3346'), frame(x, y) ? 0.8 : 1.1) : frame(x, y, 5) ? [20, 14, 30, 255] : [84, 42, 120, 255])), side };
+    }
+    case 'lodestone': {
+      const st = bevelled('#a3a3a8', s, { amp: 0.05, edge: 0.14 });
+      return {
+        top: overlay(st, (x, y) => (frame(x, y, 4) ? null : frame(x, y, 5) ? [70, 70, 76, 255] : (x + y) % 3 === 0 ? [150, 150, 158, 255] : [96, 96, 104, 255])),
+        side: overlay(st, (x, y) => (y === 5 || y === 10 ? [92, 92, 98, 255] : y > 5 && y < 10 ? tone(C('#c9c9ce'), x % 4 === 1 ? 0.85 : 1) : (x === 2 || x === 13) && y > 1 && y < 14 && y % 3 === 0 ? [80, 80, 86, 255] : null)),
+      };
+    }
+    case 'target': {
+      const hay = noisy('#e6d9c6', s, { amp: 0.04, fine: 0.04, cell: 2 });
+      return { top: hay, side: overlay(hay, (x, y) => { const d = Math.hypot(x - 7.5, y - 7.5); return d < 2.2 || (d > 3.9 && d < 5.7) ? tone(C('#d2302c'), q(0.95 + (x * 7 + y * 3) % 5 * 0.03)) : null; }) };
+    }
+    case 'beehive': case 'bee_nest': {
+      const nest = mat === 'bee_nest', wood = nest ? '#d4a23c' : '#c39a5b';
+      const side = nest ? overlay(noisy(wood, s, { amp: 0.06, cell: 2 }), (x, y) => (y % 4 === 3 ? tone(C('#8f5f22'), 1) : (x + (y >> 2) * 3) % 7 === 0 ? tone(C(wood), 0.85) : null)) : overlay(planks(wood, s), (x, y) => (y < 2 || y > 13 ? tone(C('#8a6a3e'), y === 0 ? 1.1 : 1) : null));
+      const front = paint(side, [
+        '................', '................', '................', '................', '................', '................',
+        '....llllllll....', '....kkkkkkkk....', '....kkkkkkkk....', '....kkkkkkkk....', '....dddddddd....',
+        '................', '................', '................', '................', '................',
+      ], { l: 1.18, k: '#2a1a0e', d: 0.7 });
+      return { top: nest ? rings('#a8722a', '#e3b54c', s) : logTop('#9a7442', '#d1ae70', s), side, front };
+    }
+    case 'honey_block': return same(tex((x, y) => (frame(x, y) ? [222, 140, 24, 245] : frame(x, y, 3) ? [246, 180, 44, 205] : (x === 3 || y === 3) ? [255, 222, 120, 215] : [236, 160, 32, 225])));
+    case 'honeycomb_block': return same(tex((x, y) => {
+      const cy = y % 4, cx = (x + (y >> 2) % 2 * 2) % 4;
+      return cy === 3 || cx === 3 ? [176, 104, 18, 255] : cy === 0 && cx < 2 ? [250, 214, 96, 255] : tone(C('#e8a32c'), cx === 0 ? 1.08 : 1);
+    }));
+    case 'sea_lantern': return same(tex((x, y) => {
+      if (frame(x, y)) return [150, 186, 174, 255];
+      if (x === 7 || y === 7 || x === 8 || y === 8) return x === y || x + y === 15 ? [244, 252, 248, 255] : [176, 208, 196, 255];
+      return Math.hypot(x % 8 - 3.6, y % 8 - 3.6) < 1.8 ? [248, 255, 252, 255] : [210, 232, 223, 255];
+    }));
+    case 'shroomlight': { const r = rng(`${s}y`); return same(overlay(cobble('#f0903f', s, { cells: 7, border: 0.78 }), (x, y, px) => (px[0] > 230 && r() < 0.25 ? [255, 214, 120, 255] : null))); }
+    case 'nether_wart_block': return same(mottle('#740b0b', s, { tones: [0.62, 0.8, 1, 1, 1.22] }));
+    case 'warped_wart_block': return same(mottle('#147a7c', s, { tones: [0.62, 0.8, 1, 1, 1.25] }));
+    case 'crimson_nylium': case 'warped_nylium': {
+      const crimson = mat === 'crimson_nylium', top = crimson ? '#a11a1a' : '#2a8a74', hi = crimson ? '#d23434' : '#3dbd9e', r = rng(`${s}f`);
+      const depth = Array.from({ length: 16 }, () => 3 + (r() * 3 | 0)), drip = Array.from({ length: 16 }, () => r() < 0.3);
+      const side = overlay(noisy('#5c2a29', s, { amp: 0.18, cell: 2, fine: 0.08 }), (x, y) => (y < depth[x] ? tone(C(top), q(0.85 + r() * 0.3)) : y === depth[x] ? (drip[x] ? tone(C(top), 0.8) : tone(C(NETHERRACK), 0.7)) : y === depth[x] + 1 && drip[x] ? tone(C(top), 0.65) : null));
+      return { top: overlay(noisy(top, s, { amp: 0.14, cell: 2 }), () => (r() < 0.12 ? [...C(hi), 255] : null)), side };
+    }
+    case 'chorus_plant': { const r = rng(s), vn = valueNoise(r, 4); return same(tex((x, y) => { const v = vn(x, y) + (r() - 0.5) * 0.3; return tone(C('#5c385c'), v > 0.72 ? 1.55 : v > 0.55 ? 1.2 : v < 0.25 ? 0.75 : 1); })); }
+    case 'chorus_flower': return same(tex((x, y) => {
+      const lx = x % 8, ly = y % 8;
+      if (frame(x, y)) return [104, 72, 104, 255];
+      if (x === 7 || x === 8 || y === 7 || y === 8) return [136, 100, 136, 255];
+      return Math.hypot(lx - 3.5, ly - 3.5) < 1.6 ? [228, 206, 228, 255] : lx === 1 || ly === 1 ? [196, 166, 196, 255] : [170, 136, 170, 255];
+    }));
+    case 'mangrove_roots': case 'muddy_mangrove_roots': {
+      const muddy = mat === 'muddy_mangrove_roots';
+      const root = (x, y) => (x * 2 + y) % 13 < 2 || (x - y * 2 + 48) % 15 < 2 || (x === 3 && y > 6) || (y === 2 && x > 8);
+      return same(tex((x, y) => (root(x, y) ? tone(C(muddy ? '#5b4630' : '#4f3d2b'), (x + y) % 3 === 0 ? 1.25 : 1) : muddy ? tone(C('#3a373d'), q(0.9 + ((x * 7 + y * 13) % 5) * 0.05)) : [0, 0, 0, 0])));
+    }
+    case 'rooted_dirt': { const roots = walks(s, 4, 14); return same(overlay(noisy('#8a6545', s, { amp: 0.12, fine: 0.1, cell: 2 }), (x, y) => (roots.has(y * 16 + x) ? tone(C('#c09c6e'), (x + y) % 3 ? 1 : 0.88) : null))); }
+    case 'packed_mud': { const r = rng(`${s}p`); return same(overlay(noisy('#8f6b50', s, { amp: 0.08, fine: 0.06, cell: 2 }), () => (r() < 0.1 ? [178, 146, 104, 255] : null))); }
+    case 'mud_bricks': return same(bricks('#8c6c51', '#5f4836', s, { w: 8, h: 4, bevel: 0.12 }));
+    case 'reinforced_deepslate': {
+      const core = noisy('#3c3c41', s, { amp: 0.1 }), bone = C('#b2ae9f');
+      return {
+        top: overlay(core, (x, y) => (frame(x, y, 3) ? tone(bone, frame(x, y) ? 0.75 : 1) : frame(x, y, 4) ? [40, 40, 44, 255] : Math.hypot(x - 7.5, y - 7.5) < 2 ? [94, 94, 100, 255] : null)),
+        side: overlay(core, (x, y) => (frame(x, y, 2) ? tone(bone, x === 0 || y === 15 || x === 15 ? 0.72 : 1.05) : frame(x, y, 3) ? [34, 34, 38, 255] : null)),
+      };
+    }
+    case 'sculk_catalyst': {
+      const sk = sculk(s), r = rng(`${s}b`), lip = Array.from({ length: 16 }, () => 4 + (r() * 3 | 0));
+      return {
+        top: overlay(sk, (x, y) => (frame(x, y, 3) ? null : frame(x, y, 4) ? [205, 196, 166, 255] : frame(x, y, 6) ? [168, 158, 128, 255] : [56, 220, 228, 255])),
+        side: overlay(sk, (x, y) => (y < lip[x] ? null : tone(C('#cec5a7'), y === lip[x] ? 0.75 : (x * 5 + y * 3) % 11 === 0 ? 0.72 : q(0.95 + r() * 0.1)))),
+      };
+    }
+    case 'sculk_shrieker': {
+      const sk = sculk(s), bone = C('#d6cdb0');
+      return {
+        top: overlay(sk, (x, y) => (frame(x, y, 3) ? tone(bone, frame(x, y) ? 0.8 : (x + y) % 4 === 0 ? 0.9 : 1.05) : frame(x, y, 4) ? [26, 52, 58, 255] : Math.abs(x - 7.5) < 1 && Math.abs(y - 7.5) < 1 ? [70, 230, 236, 255] : null)),
+        side: overlay(sk, (x, y) => (y >= 8 && y < 10 ? tone(bone, y === 8 ? 1.05 : 0.8) : null)),
+      };
+    }
+    case 'sculk_sensor': case 'calibrated_sculk_sensor': {
+      const sk = sculk(s, '#0b3e4e'), cal = mat === 'calibrated_sculk_sensor';
+      return {
+        top: overlay(sk, (x, y) => (frame(x, y) ? tone(C('#0b3e4e'), 0.7) : cal && Math.abs(x - 7.5) < 3 && Math.abs(y - 7.5) < 3 ? tone(C('#9b62d6'), (x + y) % 3 ? 1 : 1.3) : !cal && Math.abs(x - 7.5) < 1 && Math.abs(y - 7.5) < 3 ? [40, 210, 220, 255] : null)),
+        side: overlay(sk, (x, y) => (y === 8 ? tone(C('#0b3e4e'), 1.3) : cal && y === 9 ? tone(C('#9b62d6'), 0.9) : null)),
+      };
+    }
+    case 'suspicious_sand': case 'suspicious_gravel': {
+      const t = mat === 'suspicious_sand' ? speckle('#dccfa2', s) : cobble('#857d7b', s, { cells: 16, border: 0.7 });
+      return same(overlay(t, (x, y, px) => { const d = Math.hypot(x - 7.5, y - 8.5); return (d > 3.4 && d < 4.4 && y > 5) || (Math.abs(d - 6.2) < 0.5 && y < 8) ? tone(px, 0.78) : null; }));
+    }
+    case 'obsidian': case 'crying_obsidian': {
+      const r = rng(s), vn = valueNoise(r, 4), ob = tex((x, y) => { const v = vn(x, y) + (r() - 0.5) * 0.35; return v > 0.78 ? [74, 50, 112, 255] : v > 0.6 ? [42, 30, 66, 255] : tone(C('#15111f'), v < 0.3 ? 0.8 : 1); });
+      if (mat === 'obsidian') return same(ob);
+      const drips = walks(s, 7, 6), tear = (x, y) => drips.has(y * 16 + x) && [[160, 60, 240, 255], [190, 90, 255, 255], [120, 30, 200, 255]][(x + y) % 3];
+      return same(overlay(ob, (x, y) => tear(x, y) || null));
+    }
+    case 'ancient_debris': {
+      const r = rng(s), c = [C('#3f2a24'), C('#5e4237'), C('#7e5d4e'), C('#5e4237')];
+      return {
+        top: tex((x, y) => tone(c[Math.floor(Math.hypot(x - 7.5, y - 7.5) / 1.4) % 4], q(0.95 + r() * 0.1))),
+        side: tex((x, y) => tone(c[(Math.floor((y + 1.6 * Math.sin(x * 0.9 + (y >> 2))) / 2) % 4 + 4) % 4], frame(x, y) ? 0.8 : q(0.95 + r() * 0.1))),
+      };
+    }
+    case 'nether_gold_ore': {
+      const spots = [[2, 2], [3, 2], [7, 1], [12, 3], [13, 3], [5, 5], [10, 6], [11, 7], [1, 8], [6, 9], [7, 9], [14, 9], [3, 12], [4, 13], [9, 12], [12, 13], [13, 14], [8, 15]];
+      const set = new Map(spots.map(([x, y], i) => [y * 16 + x, i % 3]));
+      return same(overlay(noisy(NETHERRACK, s, { amp: 0.16, cell: 2 }), (x, y) => (set.has(y * 16 + x) ? [[255, 238, 110, 255], [246, 205, 50, 255], [196, 140, 24, 255]][set.get(y * 16 + x)] : null)));
+    }
+    case 'amethyst_block': return same(mottle('#8d63c9', s, { tones: [0.68, 0.82, 0.95, 1.08, 1.3], cell: 4, blend: 0.75 }));
+    case 'budding_amethyst': return same(paint(mottle('#8d63c9', s, { tones: [0.68, 0.82, 0.95, 1.08, 1.3], cell: 4, blend: 0.75 }), [
+      '................', '..k.............', '.kwk......k.....', '..k......kwk....', '..........k.....', '................',
+      '.....k..........', '....kwk.........', '.....k.......k..', '............kwk.', '.............k..',
+      '..k.............', '.kwk.....k......', '..k.....kwk.....', '.........k......', '................',
+    ], { k: '#3a1d66', w: '#e2c4ff' }));
+    case 'beacon': {
+      const pal = { g: [214, 244, 246, 230], '.': [190, 232, 238, 70], c: '#5fd8d0', w: '#bff8f2', W: '#ffffff', o: '#221a30', O: '#3c2c56' };
+      const side = paint(blank(), [
+        'gggggggggggggggg', 'g..............g', 'g..............g', 'g..cccccccccc..g', 'g..cwwwwwwwwc..g', 'g..cwwwWWwwwc..g', 'g..cwwWWWWwwc..g', 'g..cwwWWWWwwc..g',
+        'g..cwwwWWwwwc..g', 'g..cwwwwwwwwc..g', 'g..cccccccccc..g', 'g..............g', 'gooooooooooooooO', 'goOooOooOooOoooO', 'goooooooooooooog', 'gggggggggggggggg',
+      ], pal);
+      const top = paint(blank(), ['gggggggggggggggg', 'g..............g', 'g..............g', 'g..cccccccccc..g', 'g..cwwwwwwwwc..g', 'g..cwwwWWwwwc..g', 'g..cwwWWWWwwc..g', 'g..cwwWWWWwwc..g',
+        'g..cwwWWWWwwc..g', 'g..cwwWWWWwwc..g', 'g..cwwwWWwwwc..g', 'g..cwwwwwwwwc..g', 'g..cccccccccc..g', 'g..............g', 'g..............g', 'gggggggggggggggg'], pal);
+      return { top, side };
+    }
+    case 'spawner': case 'trial_spawner': {
+      const trial = mat === 'trial_spawner', bar = C(trial ? '#3c4548' : '#2b3742'), hole = trial ? [26, 20, 16, 140] : [12, 16, 22, 120];
+      const cage = tex((x, y) => {
+        if (frame(x, y, 2) || x === 7 || x === 8 || y === 7 || y === 8) return trial && (frame(x, y, 2) && (x < 3 || x > 12) && (y < 3 || y > 12)) ? [196, 112, 52, 255] : tone(bar, x === 0 || y === 0 || x === 7 || y === 7 ? 1.45 : 1);
+        return hole;
+      });
+      return { top: trial ? overlay(cage, (x, y) => (Math.hypot(x - 7.5, y - 7.5) < 2.5 ? [236, 140, 50, 255] : null)) : cage, side: cage };
+    }
+    case 'vault': {
+      const steel = C('#363b40');
+      const side = tex((x, y) => (frame(x, y, 2) ? tone(steel, x === 0 || y === 0 ? 1.4 : (x < 2 || x > 13) && (y < 2 || y > 13) ? 1.7 : 1) : x % 4 === 3 || y % 4 === 3 ? tone(steel, 1.2) : [18, 20, 24, 150]));
+      return { top: overlay(bevelled(steel, s, { edge: 0.25 }), (x, y) => (frame(x, y, 3) ? null : [30, 33, 37, 255])), side, front: overlay(side, (x, y) => ((y === 1 || y === 14) && x > 4 && x < 11 ? [214, 132, 58, 255] : null)) };
+    }
+    case 'crafter': {
+      const g = C('#80807f'), body = bevelled(g, s, { amp: 0.04, edge: 0.15 });
+      return {
+        top: overlay(body, (x, y) => (x > 1 && x < 14 && y > 1 && y < 14 && (x - 2) % 4 !== 3 && (y - 2) % 4 !== 3 ? [52, 52, 54, 255] : null)),
+        side: overlay(body, (x, y) => (x > 3 && x < 12 && y > 3 && y < 12 ? (Math.abs(x - 7.5) < 1 && y > 5 && y < 10 ? [200, 30, 24, 255] : [64, 64, 66, 255]) : null)),
+        front: overlay(body, (x, y) => (x > 2 && x < 13 && y > 5 && y < 10 ? (y === 6 ? [40, 40, 42, 255] : [28, 28, 30, 255]) : (y === 3 && (x === 4 || x === 11)) ? [210, 40, 30, 255] : null)),
+      };
+    }
+    case 'smithing_table': {
+      const iron = C('#3d3f4b'), wood = C('#4d3326');
+      const side = overlay(planks(wood, s), (x, y) => (y < 4 ? tone(iron, y === 0 ? 1.4 : 1) : (x < 2 || x > 13) ? tone(iron, 0.9) : null));
+      return {
+        top: tex((x, y) => tone(iron, frame(x, y) ? 0.7 : frame(x, y, 2) ? 1.35 : (x < 4 || x > 11) && (y < 4 || y > 11) ? 1.6 : 1)),
+        side, front: overlay(side, (x, y) => ((x > 4 && x < 11 && y > 5 && y < 8) || (x > 6 && x < 9 && y > 7 && y < 13) ? [168, 168, 176, 255] : null)),
+      };
+    }
+    case 'cartography_table': {
+      const wood = C('#4f3426'), paper = C('#dacaa0');
+      const side = overlay(planks(wood, s), (x, y) => (y > 1 && y < 7 && x > 1 && x < 14 ? tone(paper, (x + y) % 5 === 0 ? 0.85 : 1) : null));
+      return {
+        top: tex((x, y) => (frame(x, y, 2) ? tone(wood, frame(x, y) ? 0.7 : 1.1) : (x * 3 + y * 5) % 11 === 0 ? [80, 120, 180, 255] : (x - 8) ** 2 + (y - 9) ** 2 < 9 ? [104, 150, 70, 255] : tone(paper, 1))),
+        side,
+      };
+    }
+    case 'fletching_table': {
+      const p = C('#d8c48a'), wood = C('#a4875a');
+      const side = overlay(planks(wood, s), (x, y) => (y < 3 ? tone(p, y === 0 ? 1.1 : 0.9) : null));
+      return {
+        top: overlay(planks(p, s), (x, y) => (frame(x, y) ? tone(p, 0.72) : null)),
+        side, front: overlay(side, (x, y) => { const d = Math.hypot(x - 7.5, y - 8.5); return d < 1.5 ? [200, 40, 36, 255] : d > 2.4 && d < 3.6 ? [236, 230, 220, 255] : d >= 3.6 && d < 4.6 ? [200, 40, 36, 255] : null; }),
+      };
+    }
+    case 'loom': {
+      const wood = C('#b8915e'), dark = C('#6a4a2c');
+      const side = overlay(planks(wood, s), (x, y) => (y < 2 || y > 13 ? tone(dark, 1.1) : null));
+      return {
+        top: overlay(planks(wood, s), (x, y) => (y > 5 && y < 10 && x > 1 && x < 14 ? (y === 6 ? tone(dark, 0.8) : [222, 214, 200, 255]) : null)),
+        side, front: overlay(side, (x, y) => (y > 1 && y < 14 && x > 1 && x < 14 ? (x % 2 ? [226, 222, 212, 255] : tone(dark, 0.7)) : null)),
+      };
+    }
+    case 'stonecutter': {
+      const st = bevelled('#8c8c8c', s, { amp: 0.04, edge: 0.14 });
+      return {
+        top: overlay(st, (x, y) => (y > 6 && y < 9 && x > 1 && x < 14 ? (y === 7 ? [220, 220, 228, 255] : [120, 120, 128, 255]) : null)),
+        side: overlay(st, (x, y) => (y === 7 ? [104, 104, 104, 255] : y > 12 ? tone(C('#6b6b6b'), 1) : null)),
+      };
+    }
+    case 'grindstone': {
+      const wood = C('#6b4a33'), st = C('#8f8f8f');
+      return {
+        top: tex((x, y) => (x > 3 && x < 12 ? tone(st, x === 4 || x === 11 ? 0.8 : (y % 4 === 0 ? 0.9 : 1.05)) : tone(wood, y % 4 === 3 ? 0.75 : 1))),
+        side: tex((x, y) => { const d = Math.hypot(x - 7.5, y - 7.5); return d < 7.6 ? tone(st, d < 2 ? 0.7 : d > 6.4 ? 0.82 : (x + y) % 5 === 0 ? 0.9 : 1.04) : [0, 0, 0, 0]; }),
+        east: tex((x, y) => (x > 3 && x < 12 ? tone(st, (y % 4 === 0 ? 0.88 : 1)) : y > 9 ? tone(wood, 0.9) : [0, 0, 0, 0])),
+      };
+    }
+    case 'enchanting_table': {
+      const cloth = C('#a3202a'), ob = C('#191424');
+      return {
+        top: tex((x, y) => ((x < 3 || x > 12) && (y < 3 || y > 12) ? (Math.abs(x - (x < 3 ? 1 : 14)) + Math.abs(y - (y < 3 ? 1 : 14)) < 2 ? [92, 226, 216, 255] : tone(ob, 1.4)) : frame(x, y) ? tone(cloth, 0.7) : tone(cloth, (x + y) % 4 === 0 ? 0.88 : 1.05))),
+        side: tex((x, y) => (y < 7 ? tone(cloth, y === 6 ? 0.7 : 1) : (x + y * 3) % 7 === 0 ? [62, 40, 92, 255] : tone(ob, y === 7 ? 1.6 : 1))),
+      };
+    }
+    case 'note_block': case 'jukebox': {
+      const wood = C(mat === 'jukebox' ? '#6e4733' : '#6b4630'), side = overlay(planks(wood, s), (x, y) => (frame(x, y) ? tone(wood, 0.55) : frame(x, y, 2) ? tone(wood, 1.12) : null));
+      return { top: mat === 'jukebox' ? overlay(side, (x, y) => (y > 6 && y < 9 && x > 2 && x < 13 ? [22, 18, 16, 255] : (y === 6 || y === 9) && x > 1 && x < 14 ? tone(wood, 0.72) : null)) : side, side };
+    }
+    case 'creaking_heart': {
+      const bark = logSide('#5a504c', s, { stripes: 0.22 }), r = rng(`${s}e`);
+      return {
+        top: logTop('#5a504c', '#c9bbb4', s),
+        side: overlay(bark, (x, y) => (x > 5 && x < 10 && y > 3 && y < 12 ? (Math.abs(x - 7.5) < 1 && y > 5 && y < 10 ? [255, 176, 64, 255] : r() < 0.4 ? [234, 108, 30, 255] : [64, 44, 36, 255]) : null)),
+      };
+    }
+    case 'resin_block': return same(mottle('#d9651c', s, { tones: [0.72, 0.86, 1, 1.1, 1.25], cell: 4, blend: 0.6 }));
+    case 'resin_bricks': return same(bricks('#d2621a', '#7a3810', s, { w: 8, h: 4, bevel: 0.14 }));
+    case 'chiseled_resin_bricks': return same(paint(bevelled('#d2621a', s, { amp: 0.04, edge: 0.16 }), [
+      '................', '................', '..dddddddddddd..', '..d..........d..', '..d.llllllll.d..', '..d.l......l.d..', '..d.l.dddd.l.d..', '..d.l.d..d.l.d..',
+      '..d.l.d..d.l.d..', '..d.l.dddd.l.d..', '..d.l......l.d..', '..d.llllllll.d..', '..d..........d..', '..dddddddddddd..', '................', '................',
+    ], { d: 0.6, l: 1.2 }));
+    case 'dried_kelp_block': {
+      const k = C('#3a4527');
+      return { top: rings('#2c3420', '#46532f', s, { step: 1.6 }), side: overlay(stripesV(k, s, { amp: 0.2, every: 3 }), (x, y) => (y === 2 || y === 13 ? [104, 112, 72, 255] : null)) };
+    }
+    case 'ochre_froglight': case 'verdant_froglight': case 'pearlescent_froglight': {
+      const [lt, ed] = { ochre: ['#f6e8a6', '#d9a64a'], verdant: ['#e3f3cf', '#78b86e'], pearlescent: ['#f5e1ee', '#bf8cc2'] }[mat.split('_')[0]];
+      return {
+        top: tex((x, y) => [...C(frame(x, y) || (frame(x, y, 5) && !frame(x, y, 4)) ? ed : lt), 255]),
+        side: tex((x, y) => [...C(frame(x, y) || ((x === 5 || x === 10) && y > 1 && y < 14) ? ed : lt), 255]),
+      };
+    }
+    case 'scaffolding': {
+      const b = C('#c9aa5e');
+      return same(tex((x, y) => (frame(x, y, 2) ? tone(b, x < 2 && y < 2 ? 1.15 : (x + y) % 4 === 0 ? 0.8 : 1) : (x === y || x === y + 1) ? tone(b, 0.88) : [0, 0, 0, 0])));
+    }
+    case 'moss_block': return same(mottle('#5b7a2b', s, { tones: [0.72, 0.86, 1, 1.1, 1.24], cell: 2, blend: 0.4 }));
+  }
+  return null;
+}
+
+function sculk(seed, base = '#0d2a33') {
+  const r = rng(seed);
+  return tex(() => { const v = r(); return v < 0.06 ? [44, 214, 226, 255] : tone(C(base), v < 0.3 ? 0.75 : v < 0.8 ? 1 : 1.35); });
+}
+
 // --- block families -------------------------------------------------------------
 
 const STONE = '#7f7f7f', DEEPSLATE = '#4d4d50', NETHERRACK = '#6e2c2c';
@@ -185,17 +465,17 @@ function pumpkinSide(seed, face) {
 }
 
 function chestTex(base, kind) {
-  const c = C(base), dark = mix(c, [0, 0, 0], 0.55), latch = kind === 'ender' ? [60, 180, 160] : [200, 200, 200];
+  const c = C(base), dark = kind === 'ender' ? mix(c, [80, 190, 160], 0.3) : mix(c, [0, 0, 0], 0.55), latch = kind === 'ender' ? [60, 180, 160] : [200, 200, 200];
   const side = tex((x, y) => (x === 0 || x === 15 || y === 0 || y === 13 || y === 4 ? [...dark, 255] : tone(c, y < 4 ? 1.08 : q(1 + ((x * 5 + y * 3) % 7 - 3) * 0.015))));
-  const front = overlay(side, (x, y) => (x >= 7 && x <= 8 && y >= 2 && y <= 6 ? [...(y === 2 ? latch : mix(latch, [0, 0, 0], 0.25)), 255] : null));
+  const front = overlay(side, (x, y) => (x >= 7 && x <= 8 && y >= 2 && y <= 6 ? (kind === 'ender' && y === 4 ? [90, 240, 120, 255] : [...(y === 2 ? latch : mix(latch, [0, 0, 0], 0.25)), 255]) : null));
   const top = tex((x, y) => (x === 0 || x === 15 || y === 0 || y === 15 ? [...dark, 255] : tone(c, 1.1 * q(1 + ((x * 3 + y * 7) % 5 - 2) * 0.02))));
   return { top, side, front };
 }
 
 function shulkerTex(base) {
   const c = C(base);
-  const side = tex((x, y) => (y === 7 || y === 8 ? tone(c, 0.7) : tone(c, (x === 0 || x === 15) ? 0.85 : y < 7 ? 1.08 : 0.96)));
-  const top = tex((x, y) => tone(c, (x === 0 || y === 0 || x === 15 || y === 15) ? 0.85 : (x > 3 && x < 12 && y > 3 && y < 12) ? 1.12 : 1.04));
+  const side = tex((x, y) => tone(c, y === 0 ? 1.22 : y < 8 ? (x === 0 || x === 15 ? 0.95 : y === 7 ? 1 : 1.1) : y === 8 ? 0.58 : x === 0 || x === 15 || y === 15 ? 0.7 : (x % 5 === 2 ? 0.82 : 0.9)));
+  const top = tex((x, y) => tone(c, frame(x, y) ? 0.85 : frame(x, y, 3) ? 1.16 : frame(x, y, 4) ? 0.8 : frame(x, y, 6) ? 1.02 : 0.9));
   return { top, side };
 }
 
@@ -257,12 +537,13 @@ export function blockTextures(mat) {
   const wood = woodOf(mat);
   const dye = dyeOf(mat);
 
+  const sp = specialTextures(mat, s);
+  if (sp) return sp;
   const o = oreName(mat);
   if (o) {
     const host = o.host === 'deepslate' ? noisy(DEEPSLATE, s, { amp: 0.08, cell: 4 }) : o.host === 'netherrack' ? noisy(NETHERRACK, s, { amp: 0.16, cell: 2 }) : noisy(STONE, s);
     return same(ore(host, o.color));
   }
-  if (mat === 'ancient_debris') return { top: bevelled('#5e4a44', s, { amp: 0.1 }), side: stripesV('#654740', s, { amp: 0.18, every: 3 }) };
   if (mat === 'gilded_blackstone') return same(ore(noisy('#2c2629', s, { amp: 0.1 }), '#e8b12c'));
 
   if (/^(stripped_)?\w+_(log|wood|stem|hyphae)$/.test(mat) || /^(bamboo_block|stripped_bamboo_block)$/.test(mat)) {
@@ -294,10 +575,6 @@ export function blockTextures(mat) {
   if (/^(gravel|suspicious_gravel)$/.test(mat)) return same(cobble('#857d7b', s, { cells: 16, border: 0.7 }));
   if (mat === 'soul_sand') return same(overlay(noisy('#513e32', s, { amp: 0.12, cell: 2 }), (x, y) => ((x % 8 === 2 || x % 8 === 4) && y % 8 === 3) || (x % 8 > 1 && x % 8 < 6 && y % 8 === 6) ? [40, 28, 22, 255] : null));
   if (mat === 'netherrack') return same(noisy(NETHERRACK, s, { amp: 0.18, cell: 2, fine: 0.08 }));
-  if (mat === 'obsidian' || mat === 'crying_obsidian') {
-    const r = rng(s);
-    return same(tex(() => { const v = r(); return v < 0.1 ? (mat === 'crying_obsidian' && v < 0.05 ? [140, 60, 230, 255] : [60, 40, 90, 255]) : tone(C('#14121e'), v < 0.5 ? 1 : 1.5); }));
-  }
   if (/^(stone|smooth_stone|infested_stone|normal_stone)$/.test(mat)) return same(mat === 'smooth_stone' ? bevelled('#9e9e9e', s, { amp: 0.03, edge: 0.06 }) : noisy(STONE, s));
   if (/^(cobblestone|mossy_cobblestone|cobbled_deepslate|infested_cobblestone)$/.test(mat)) {
     const t = cobble(mat === 'cobbled_deepslate' ? '#555558' : '#808080', s, { border: 0.55 });
@@ -311,23 +588,22 @@ export function blockTextures(mat) {
   }
   if (/_shelf$/.test(mat)) {
     const p = C(WOODS[wood]?.planks || base);
-    return { top: planks(p, s), side: tex((x, y) => (x === 0 || x === 15 || y === 0 || y === 15 ? tone(p, 0.62) : y === 7 || y === 8 ? tone(p, y === 7 ? 1.12 : 0.9) : tone(p, 0.42))) };
+    const side = planks(p, s);
+    return { top: side, side, front: overlay(side, (x, y) => (y < 3 || y > 12 ? (y === 2 || y === 15 ? tone(p, 0.7) : null) : x === 0 || x === 15 ? tone(p, 0.8) : x === 5 || x === 10 ? tone(p, 0.62) : tone(p, y === 3 ? 0.3 : 0.45))) };
   }
-  if (/^(tuff|calcite|dripstone_block|basalt|smooth_basalt|blackstone|deepslate|bedrock|end_stone|moss_block|pale_moss_block|sculk|magma_block|nether_wart_block|warped_wart_block|shroomlight|glowstone|sponge|wet_sponge|snow|snow_block|powder_snow|cinnabar|sulfur|potent_sulfur|amethyst_block|budding_amethyst|prismarine|sea_lantern|honeycomb_block|bone_block|dried_kelp_block)$/.test(mat)) {
+  if (/^(tuff|calcite|dripstone_block|basalt|smooth_basalt|blackstone|deepslate|bedrock|end_stone|pale_moss_block|sculk|magma_block|glowstone|sponge|wet_sponge|snow|snow_block|powder_snow|cinnabar|sulfur|potent_sulfur|prismarine|bone_block)$/.test(mat)) {
     if (mat === 'deepslate') return { top: noisy(DEEPSLATE, s, { amp: 0.08 }), side: overlay(noisy(DEEPSLATE, s, { amp: 0.06 }), (x, y) => ((y * 5 + (x >> 2) * 3) % 7 === 0 ? tone(C(DEEPSLATE), 0.75) : null)) };
     if (mat === 'basalt') return { top: cobble('#555559', s, { cells: 5 }), side: stripesV('#535357', s, { amp: 0.2, every: 3 }) };
     if (mat === 'bone_block') return { top: tex((x, y) => tone(C('#e1dcc3'), Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5)) > 6 ? 1 : 0.86)), side: stripesV('#e1dcc3', s, { amp: 0.08, every: 4 }) };
     if (mat === 'magma_block') { const r = rng(s); return same(tex(() => (r() < 0.22 ? [255, 160, 40, 255] : tone(C('#7a3416'), q(0.8 + r() * 0.3))))); }
     if (mat === 'sculk') { const r = rng(s); return same(tex(() => (r() < 0.08 ? [40, 220, 230, 255] : tone(C('#0e2a33'), q(0.8 + r() * 0.5))))); }
-    if (mat === 'glowstone' || mat === 'shroomlight' || mat === 'sea_lantern') return same(cobble(mat === 'glowstone' ? '#d9a95a' : mat === 'shroomlight' ? '#f19446' : '#b7d6cc', s, { cells: 7, border: mat === 'sea_lantern' ? 1.25 : 0.72 }));
+    if (mat === 'glowstone') return same(cobble('#d9a95a', s, { cells: 7, border: 0.72 }));
     if (mat === 'sponge' || mat === 'wet_sponge') { const r = rng(s); return same(tex(() => tone(C(mat === 'sponge' ? '#c9c44e' : '#a39f3a'), r() < 0.18 ? 0.6 : q(0.95 + r() * 0.1)))); }
-    if (mat === 'honeycomb_block') return same(tex((x, y) => tone(C('#e5a02c'), ((x + (y >> 2) % 2 * 2) % 4 === 0 || y % 4 === 0) ? 0.72 : 1.05)));
-    const amps = { calcite: 0.05, snow: 0.03, snow_block: 0.03, powder_snow: 0.03, bedrock: 0.3, blackstone: 0.1, smooth_basalt: 0.06, prismarine: 0.2, amethyst_block: 0.16 };
+    const amps = { calcite: 0.05, snow: 0.03, snow_block: 0.03, powder_snow: 0.03, bedrock: 0.3, blackstone: 0.1, smooth_basalt: 0.06, prismarine: 0.2 };
     return same(noisy(base, s, { amp: amps[mat] ?? 0.12, cell: mat === 'bedrock' ? 2 : 4 }));
   }
 
   if (/^(bricks|brick_block)$/.test(mat)) return same(bricks('#9a5a46', '#b3a69a', s, { w: 8, h: 4, bevel: 0.08 }));
-  if (/^mud_bricks$/.test(mat)) return same(bricks('#8b6a4f', '#5f4a38', s));
   if (/stone_bricks$|^stonebrick$/.test(mat) || /^infested_\w*stone_bricks$/.test(mat)) {
     let t = bricks(/^(end_stone)/.test(mat) ? '#dcdc9f' : '#7d7d7d', /^(end_stone)/.test(mat) ? '#b8b783' : '#5a5a5a', s, { w: 8, h: 4, bevel: 0.12 });
     if (/^mossy/.test(mat)) { const r = rng(`${s}m`), vn = valueNoise(r, 4); t = overlay(t, (x, y) => (vn(x, y) > 0.6 ? tone(C('#5e7a33'), q(0.9 + r() * 0.2)) : null)); }
@@ -412,34 +688,20 @@ export function blockTextures(mat) {
   if (mat === 'ender_chest') return chestTex('#1f3532', 'ender');
   if (mat === 'barrel') return barrelTex(s);
   if (/shulker_box$/.test(mat)) return shulkerTex(dye ? DYES[dye] : '#976997');
-  if (/^(note_block|jukebox)$/.test(mat)) {
-    const t = bevelled('#6b4a33', s, { amp: 0.06 });
-    return { top: mat === 'jukebox' ? overlay(t, (x, y) => (y >= 7 && y <= 8 && x > 2 && x < 13 ? [24, 24, 24, 255] : null)) : t, side: t };
-  }
   if (mat === 'redstone_lamp') return same(tex((x, y) => (x === 0 || y === 0 || x === 15 || y === 15 ? [90, 50, 30, 255] : tone(C('#7a4a2a'), ((x + y) % 4 === 0) ? 1.3 : 1))));
   if (mat === 'cactus') return { top: tex((x, y) => tone(C('#5e8d33'), Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5)) > 6 ? 0.8 : 1.05)), side: overlay(stripesV('#4f7d29', s, { amp: 0.2, every: 4 }), (x, y) => ((x % 4 === 1 && y % 5 === 2) ? [20, 20, 20, 255] : null)) };
-  if (mat === 'target') return { top: noisy('#e5d4c3', s, { amp: 0.04 }), side: tex((x, y) => { const d = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5)); return d < 1.5 || (d > 3 && d < 5) ? [200, 40, 40, 255] : [230, 220, 210, 255]; }) };
-  if (/^(beehive|bee_nest)$/.test(mat)) return { top: planks('#b8904e', s), side: overlay(planks('#b8904e', s), (x, y) => (y > 6 && y < 10 && x > 3 && x < 12 ? [235, 170, 40, 255] : null)) };
-  if (mat === 'scaffolding') return same(tex((x, y) => (x < 2 || y < 2 || x > 13 || y > 13 || x === y || x + y === 15 ? tone(C('#c4a65c'), x < 2 || y < 2 ? 1.1 : 0.9) : [0, 0, 0, 0])));
-  if (/^(spawner|mob_spawner|trial_spawner)$/.test(mat)) return same(tex((x, y) => (x % 4 === 0 || y % 4 === 0 ? [40, 46, 56, 255] : [20, 24, 30, 90])));
   if (/^(slime_block|slime)$/.test(mat)) return same(tex((x, y) => (x > 3 && y > 3 && x < 12 && y < 12 ? [110, 190, 80, 235] : [130, 210, 100, 140])));
-  if (mat === 'honey_block') return same(tex((x, y) => [235, 160, 30, x > 2 && y > 2 && x < 13 && y < 13 ? 230 : 170]));
-  if (mat === 'beacon') return same(tex((x, y) => (x > 2 && y > 2 && x < 13 && y < 13 ? [120, 230, 225, 255] : [200, 235, 240, 140])));
   if (/(^|_)coral_block$/.test(mat)) return same(speckle(/^dead/.test(mat) ? '#857e79' : base, s, { p: 0.4, dark: 0.8, light: 1.25 }));
   if (/^(red_mushroom_block|brown_mushroom_block|mushroom_stem)$/.test(mat)) return same(mat === 'red_mushroom_block' ? overlay(noisy('#b5251f', s, { amp: 0.06 }), (x, y) => ((x % 6 === 2 && y % 5 === 1) ? [230, 220, 210, 255] : null)) : noisy(mat === 'mushroom_stem' ? '#cfc8b8' : '#97704f', s, { amp: 0.06 }));
-  if (/^(lodestone|lectern|loom|stonecutter|grindstone|smithing_table|cartography_table|fletching_table|composter|crafter|enchanting_table|end_portal_frame|daylight_detector|sculk_sensor|sculk_catalyst|sculk_shrieker|anvil|chipped_anvil|damaged_anvil|vault)$/.test(mat)) {
+  if (/^(lectern|composter|end_portal_frame|daylight_detector|anvil|chipped_anvil|damaged_anvil)$/.test(mat)) {
     const looks = {
-      lodestone: ['#9a9aa0', '#6a6a70'], lectern: ['#b8904e', '#8a6a3a'], loom: ['#c9a87a', '#8a6a3a'], stonecutter: ['#8a8a8a', '#6b6b6b'],
-      grindstone: ['#8f8f8f', '#6b4a33'], smithing_table: ['#3a3a44', '#5a3a2a'], cartography_table: ['#d9c9a0', '#5a3a2a'], fletching_table: ['#d8c48a', '#c4a76a'],
-      composter: ['#8a6a3a', '#6a4a2a'], crafter: ['#7a7a7a', '#5a5a5a'], enchanting_table: ['#a8282c', '#24182e'], end_portal_frame: ['#3d6e5a', '#d8d8a0'],
-      daylight_detector: ['#d8cbb0', '#8a6a3a'], sculk_sensor: ['#0f4a5a', '#0e2a33'], sculk_catalyst: ['#2a3a3a', '#0e2a33'], sculk_shrieker: ['#cfc6a8', '#0e2a33'],
-      anvil: ['#4a4a4a', '#3a3a3a'], chipped_anvil: ['#4a4a4a', '#3a3a3a'], damaged_anvil: ['#4a4a4a', '#3a3a3a'], vault: ['#3a3e44', '#2a2e33'],
+      lectern: ['#b8904e', '#8a6a3a'], composter: ['#8a6a3a', '#6a4a2a'], end_portal_frame: ['#3d6e5a', '#d8d8a0'], daylight_detector: ['#d8cbb0', '#8a6a3a'],
+      anvil: ['#4a4a4a', '#3a3a3a'], chipped_anvil: ['#4a4a4a', '#3a3a3a'], damaged_anvil: ['#4a4a4a', '#3a3a3a'],
     }[mat];
     return { top: bevelled(looks[0], s, { amp: 0.06, edge: 0.14 }), side: bevelled(looks[1], `${s}s`, { amp: 0.06, edge: 0.1 }) };
   }
   if (/^purpur_(block|pillar)$|^purpur$/.test(mat)) return mat === 'purpur_pillar' ? { top: bevelled('#a97ea9', s), side: stripesV('#a97ea9', s, { amp: 0.12, every: 4 }) } : same(bevelled('#a97ea9', s, { size: 8, edge: 0.14 }));
   if (/^quartz_pillar$/.test(mat)) return { top: bevelled('#ece6dc', s), side: stripesV('#ece6dc', s, { amp: 0.06, every: 4 }) };
-  if (/froglight$/.test(mat)) { const c = /ochre/.test(mat) ? '#f5e3a0' : /verdant/.test(mat) ? '#d4ecc4' : '#ecd2e4'; return same(bevelled(c, s, { size: 8, edge: 0.15 })); }
   if (mat === 'dragon_egg') return same(speckle('#0e0b14', s, { p: 0.25, light: 2.8 }));
 
   // generic block: the map colour with light noise and a soft bevel
@@ -452,7 +714,7 @@ const FULL = [[0, 0, 0, 16, 16, 16]];
 const SHAPES = {
   cube: FULL,
   slab: [[0, 0, 0, 16, 8, 16]],
-  stairs: [[0, 8, 0, 16, 16, 8], [0, 0, 0, 16, 8, 16]],
+  stairs: [[0, 0, 0, 16, 8, 16], [0, 8, 8, 16, 16, 16]], // full face on the left, the step on the right like the vanilla icon
   wall: [[0, 0, 5, 4, 13, 11], [4, 0, 4, 12, 16, 12], [12, 0, 5, 16, 13, 11]],
   fence: [[0, 0, 6, 4, 16, 10], [4, 12, 7, 12, 15, 9], [4, 6, 7, 12, 9, 9], [12, 0, 6, 16, 16, 10]],
   fence_gate: [[0, 5, 7, 2, 16, 9], [2, 12, 7, 6, 15, 9], [2, 6, 7, 6, 9, 9], [6, 6, 7, 10, 15, 9], [10, 12, 7, 14, 15, 9], [10, 6, 7, 14, 9, 9], [14, 5, 7, 16, 16, 9]],
@@ -512,7 +774,7 @@ export function blockModel(name) {
   if (/^(dirt_path|grass_path|farmland)$/.test(n)) return { shape: 'path', mat: n };
   if (/^(enchanting_table)$/.test(n)) return { shape: 'table', mat: n };
   if (/^(end_portal_frame)$/.test(n)) return { shape: 'frame', mat: n };
-  if (/^(sculk_sensor|calibrated_sculk_sensor|sculk_shrieker)$/.test(n)) return { shape: 'sensor', mat: n === 'calibrated_sculk_sensor' ? 'sculk_sensor' : n };
+  if (/^(sculk_sensor|calibrated_sculk_sensor|sculk_shrieker)$/.test(n)) return { shape: 'sensor', mat: n };
   if (/^(daylight_detector|daylight_detector_inverted)$/.test(n)) return { shape: 'detector', mat: 'daylight_detector' };
   if (/^stonecutter$/.test(n)) return { shape: 'cutter', mat: n };
   if (/^(anvil|chipped_anvil|damaged_anvil)$/.test(n)) return { shape: 'anvil', mat: n };

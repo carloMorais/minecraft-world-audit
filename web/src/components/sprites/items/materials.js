@@ -66,6 +66,56 @@ const BOOK_ROWS = [
 ];
 const BOOK_PAL = { o: '#2a1508', C: '#7a3f1c', L: '#9c5a2c', D: '#5a2d12', p: '#f2ecd8', P: '#c9bfa5', t: '#7a3f1c' };
 
+// Pottery sherd: a terracotta shard; each pattern is a 6×6 glyph pressed into it (E), with a
+// lighter rim (l) below-right of every stroke.
+const SHERD_ROWS = [
+  '',
+  '...oooo',
+  '..owwlloo.ooo',
+  '..owlaalloowlo',
+  '..olaaaaallaaso',
+  '..olaaaaaaaaaso',
+  '.oolaaaaaaaaaaso',
+  '.olaaaaaaaaaaaso',
+  '.olaaaaaaaaaaaso',
+  '.olaaaaaaaaaaaso',
+  '.olaaaaaaaaaaaso',
+  '.olaaaaaaaaaasso',
+  '.oaaaaaaaaaassdo',
+  '..ossssssssddo',
+  '...oooooooooo',
+];
+const SHERD_GLYPHS = {
+  angler: ['...#..', '...#..', '...#..', '#..#..', '#..#..', '.##...'],
+  archer: ['...###', '....##', '...#.#', '..#...', '.#....', '#.....'],
+  arms_up: ['#.##.#', '#.##.#', '.####.', '..##..', '.#..#.', '.#..#.'],
+  blade: ['.....#', '....#.', '...#..', '#.#...', '.#....', '#.#...'],
+  brewer: ['..##..', '..##..', '.#..#.', '#....#', '#.##.#', '.####.'],
+  burn: ['..#...', '..##.#', '.#.##.', '#..#.#', '#....#', '.####.'],
+  danger: ['##..##', '##..##', '..##..', '.####.', '.#..#.', '......'],
+  explorer: ['######', '#..#.#', '#.#..#', '#...##', '##...#', '######'],
+  flow: ['.####.', '#....#', '#.##.#', '#.#..#', '#..#..', '.##...'],
+  friend: ['.#..#.', '######', '.#..#.', '.#..#.', '#.##.#', '......'],
+  guster: ['.####.', '#....#', '#.##.#', '#.#..#', '#..##.', '.#....'],
+  heart: ['.#..#.', '######', '######', '.####.', '..##..', '......'],
+  heartbreak: ['.#..#.', '###.##', '##.###', '.#.##.', '..##..', '......'],
+  howl: ['#....#', '##..##', '######', '#.##.#', '.####.', '..##..'],
+  miner: ['.####.', '#.##.#', '..##..', '..##..', '..##..', '..##..'],
+  mourner: ['..##..', '.####.', '#.##.#', '..##..', '.#..#.', '#....#'],
+  plenty: ['######', '#.##.#', '######', '#....#', '#....#', '######'],
+  prize: ['..##..', '.#..#.', '#....#', '.#..#.', '..##..', '......'],
+  scrape: ['.###..', '####..', '.###..', '..#...', '..#...', '..#...'],
+  sheaf: ['#.#.#.', '.###..', '..#...', '..#...', '.###..', '#.#.#.'],
+  shelter: ['..##..', '.####.', '######', '..##..', '..##..', '..##..'],
+  skull: ['.####.', '#....#', '#.##.#', '#....#', '.#..#.', '.####.'],
+  snort: ['......', '.####.', '##..##', '######', '.##.##', '#.#.#.'],
+};
+const sherd = glyph => SHERD_ROWS.map((r, y) => [...r.padEnd(16, '.')].map((ch, x) => {
+  const at = (gx, gy) => glyph[gy - 6]?.[gx - 5] === '#';
+  if (at(x, y)) return 'E';
+  return at(x - 1, y - 1) && ch === 'a' ? 'l' : ch;
+}).join(''));
+
 export const sprites = {
   // ---- metals -------------------------------------------------------------
   ingot: S(TINT, [
@@ -701,6 +751,69 @@ export const sprites = {
     '....oooooooo',
   ]),
 
+  // secondary (mixed) dyes: a round pile
+  dye_round: S(TINT, [
+    '', '', '',
+    '......oooo',
+    '....oowlllaoo',
+    '...owllaaaaaso',
+    '..owlaaaaaaasdo',
+    '..olaaaaaaaasdo',
+    '..olaaaaaaassdo',
+    '..oaaaaaaaassdo',
+    '..osaaaaassssdo',
+    '...osssssssddo',
+    '....odddddddo',
+    '.....ooooooo',
+  ]),
+  // white dye: a low heap of powder
+  dye_powder: S(TINT, [
+    '', '', '', '', '',
+    '.......ooo',
+    '.....oowlaoo',
+    '....owlaaaaso',
+    '...owlaaaaaasoo',
+    '..owlaaaaaaaasdo',
+    '.owlaaaaaaaaasdo',
+    '.oaaaaaaaaaassdo',
+    '.ossssssssssddo',
+    '..oooooooooooo',
+  ]),
+  // black, blue and brown dye: an irregular two-lobed lump
+  dye_lump: S(TINT, [
+    '', '', '',
+    '...oooo',
+    '..owwlao.oooo',
+    '..owllaaoolaso',
+    '..olllaaaaaasdo',
+    '.oollaaaaaassdo',
+    '.olaaaaaaaassdo',
+    '.olaaaaaaasssdo',
+    '.oaaaaaaassssdo',
+    '.osaaaaasssddo',
+    '..ossssssdddo',
+    '...oddddddoo',
+    '....oooooo',
+  ]),
+
+  end_crystal: S({ g: '#e6d8f2', G: '#c9b4e6c0', i: '#d8c8f050', c: '#f27ae6', C: '#c43cc8', D: '#7a1890', w: '#ffe0ff' }, [
+    '',
+    '.......gg',
+    '.....ggiigg',
+    '...ggiiiiiigg',
+    '.ggiiiiiiiiiigg',
+    '.gGGiiicCiiiGGg',
+    '.giiGGccCCGGiig',
+    '.giiiccwwCCiiig',
+    '.giiiCCwwDDiiig',
+    '.giiiiCCDDiiiig',
+    '.giiiiiCDiiiiig',
+    '.ggiiiiGGiiiigg',
+    '...ggiiGGiigg',
+    '.....ggGGgg',
+    '.......gg',
+  ]),
+
   // ---- tablets, sherds, papers --------------------------------------------
   smithing_template: S(TINT2, [
     '', '',
@@ -718,21 +831,7 @@ export const sprites = {
     '..oassssssssdo',
     '...oooooooooo',
   ]),
-  pottery_sherd: S(TINT2, [
-    '', '',
-    '...ooooooooo',
-    '..owlllllllo',
-    '..olaaaaaaaaso',
-    '..olaaEEEaaaso',
-    '..olaEaaaEaaso',
-    '..olaEaEaEaaaso',
-    '..olaEaaaEaaaso',
-    '..olaaEEEaaaso',
-    '..olaaaaaaaaso',
-    '..oassssaasso',
-    '...ossdsoo',
-    '....ooo',
-  ]),
+  pottery_sherd: S(TINT2, SHERD_ROWS),
   paper: S({ o: '#6e6650', d: '#a8a088', s: '#cfc8b0', a: '#e8e2cc', l: '#f6f2e4', w: '#ffffff' }, [
     '', '',
     '....ooooooooo',
@@ -876,19 +975,22 @@ export const sprites = {
   ]),
 };
 
+for (const [k, glyph] of Object.entries(SHERD_GLYPHS)) sprites[`${k}_pottery_sherd`] = S(TINT2, sherd(glyph));
+
 sprites.glow_ink_sac = S({ o: '#062a2a', d: '#0c4a48', s: '#14706a', a: '#1fa094', l: '#5ae0c8', w: '#c8fff0' }, sprites.ink_sac.rows);
 
 // music disc label colours
 const DISCS = {
   13: '#e8c03a', cat: '#5cc23a', blocks: '#e05a2a', chirp: '#c42a2a', far: '#a8d870', mall: '#7a5ac8', mellohi: '#d8a0d8',
   stal: '#2a2a2a', strad: '#f0f0f0', ward: '#3a7a3a', 11: '#606060', wait: '#3ab0c8', pigstep: '#d06a3a', otherside: '#3a8ad0',
-  5: '#2a5a5a', relic: '#3aa8a0', creator: '#e8c060', creator_music_box: '#c8a050', precipice: '#b07a50', tears: '#c0c0d0', lava_chicken: '#f0a030',
+  5: '#2a5a5a', relic: '#3aa8a0', creator: '#e8c060', creator_music_box: '#c8a050', precipice: '#b07a50', tears: '#b8d8f0', lava_chicken: '#f0a030',
 };
 const TRIMS = {
   netherite_upgrade: '#4a3e40', sentry: '#8a8a8a', vex: '#9c9c9c', wild: '#6d7a45', coast: '#5f8e8b', dune: '#d4c286', wayfinder: '#a5664a',
   raiser: '#a86a4e', shaper: '#9c6248', host: '#a87a5e', ward: '#3c3c46', silence: '#2a2a32', tide: '#5aa59c', snout: '#2f2a30',
   rib: '#5a2228', eye: '#d8daa0', spire: '#a77aa7', flow: '#8f7ac0', bolt: '#b5734c',
 };
+const SHERD_TINT = { a: ['#3a1a0e', '#6a3220', '#8e4a30', '#a8603e', '#c07a54', '#d89a74'], b: '#4a2214' };
 const hashHue = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return `hsl(${h % 360} 55% 50%)`; };
 
 export const rules = [
@@ -920,6 +1022,8 @@ export const rules = [
   [/^blaze_powder$/, 'dust', ['#5a1e00', '#a04000', '#d86a00', '#f89a10', '#ffcf40', '#fff6a0']],
   [/^bone_meal$/, 'dust', ['#6a6a78', '#a4a4b0', '#c8c8d2', '#e2e2ea', '#f2f2f8', '#ffffff']],
   [/^stick$/, 'stick'],
+  [/^debug_stick$/, 'stick', { glint: true }],
+  [/^(end|ender)_crystal$/, 'end_crystal'],
   [/^blaze_rod$/, 'rod', ['#6a2a00', '#c26000', '#f09a00', '#ffc81a', '#fff05a', '#ffffc0']],
   [/^breeze_rod$/, 'breeze_rod'],
   [/^bone$/, 'bone'],
@@ -952,12 +1056,16 @@ export const rules = [
   [/^spider_eye$/, 'spider_eye'],
   [/^fermented_spider_eye$/, 'fermented_spider_eye'],
   [/^rotten_flesh$/, 'rotten_flesh'],
+  [/^(black|blue|brown)_dye$/, 'dye_lump', (n, m) => DYES[m[1]]],
+  [/^white_dye$/, 'dye_powder', DYES.white],
+  [/^(lime|cyan|purple|magenta|pink|light_blue|gray|light_gray|silver)_dye$/, 'dye_round', (n, m) => DYES[m[1]]],
   [/^(\w+)_dye$/, 'dye', (n, m) => DYES[m[1]] || DYES[dyeOf(n)] || hashHue(n)],
   [/^(netherite_upgrade|\w+_armor_trim)_smithing_template$/, 'smithing_template', (n, m) => {
     const c = TRIMS[m[1].replace(/_armor_trim$/, '')] || '#7a7a7a';
     return { a: c, b: m[1] === 'netherite_upgrade' ? '#8a4a3a' : c };
   }],
-  [/^\w+_pottery_sherd$/, 'pottery_sherd', { a: ['#3a1a0e', '#6a3220', '#8e4a30', '#a8603e', '#c07a54', '#d89a74'], b: '#4a2214' }],
+  ...Object.keys(SHERD_GLYPHS).map(k => [new RegExp(`^${k}_pottery_sherd$`), `${k}_pottery_sherd`, SHERD_TINT]),
+  [/^(?:\w+_)?pottery_sherd$/, 'pottery_sherd', SHERD_TINT],
   [/^\w+_banner_pattern$/, 'banner_pattern', { a: 'paper', b: '#7a4a2a' }],
   [/^paper$/, 'paper'],
   [/^(map|empty_map)$/, 'map'],

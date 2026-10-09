@@ -55,5 +55,14 @@ export const VANILLA = [
   'deepslate_iron_ore', 'iron_block', 'gold_block', 'diamond_block', 'bricks', 'stone_bricks', 'oak_stairs', 'stone_slab', 'cobblestone_wall',
   'oak_fence', 'oak_trapdoor', 'crafting_table', 'furnace', 'chest', 'barrel', 'bookshelf', 'tnt', 'pumpkin', 'carved_pumpkin', 'jack_o_lantern',
   'melon', 'hay_block', 'sand', 'gravel', 'netherrack', 'obsidian', 'white_carpet', 'shulker_box', 'red_shulker_box', 'ender_chest', 'anvil',
+  'respawn_anchor', 'lodestone', 'target', 'beehive', 'bee_nest', 'honey_block', 'honeycomb_block', 'sea_lantern', 'shroomlight', 'nether_wart_block', 'warped_wart_block',
+  'crimson_nylium', 'warped_nylium', 'chorus_plant', 'mangrove_roots', 'muddy_mangrove_roots', 'rooted_dirt', 'packed_mud', 'mud_bricks', 'reinforced_deepslate',
+  'sculk_catalyst', 'sculk_shrieker', 'calibrated_sculk_sensor', 'suspicious_sand', 'suspicious_gravel', 'crying_obsidian', 'ancient_debris', 'nether_gold_ore',
+  'amethyst_block', 'budding_amethyst', 'spawner', 'trial_spawner', 'vault', 'crafter', 'smithing_table', 'cartography_table', 'fletching_table', 'loom', 'stonecutter',
+  'grindstone', 'enchanting_table', 'jukebox', 'note_block', 'creaking_heart', 'resin_block', 'resin_bricks', 'chiseled_resin_bricks', 'dried_kelp_block',
+  'ochre_froglight', 'verdant_froglight', 'pearlescent_froglight', 'scaffolding', 'moss_block', 'moss_carpet', 'oak_shelf', 'stone_brick_stairs',
+  'end_crystal', 'debug_stick', 'bowl', 'white_harness', 'red_harness', 'iron_nautilus_armor', 'golden_nautilus_armor', 'diamond_nautilus_armor', 'netherite_nautilus_armor',
+  'copper_nautilus_armor', 'light', 'structure_void', 'cave_vines', 'heart_pottery_sherd', 'skull_pottery_sherd', 'music_disc_creator', 'music_disc_precipice',
+  'music_disc_relic', 'music_disc_lava_chicken', 'music_disc_tears',
 ];
 

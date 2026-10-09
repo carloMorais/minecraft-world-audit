@@ -28,6 +28,19 @@ test('items that are not blocks never fall back to a cube', () => {
   }
 });
 
+test('flat items that used to fall back to a cube get their own sprite', () => {
+  const expect = {
+    end_crystal: 'end_crystal', ender_crystal: 'end_crystal', debug_stick: 'stick', bowl: 'bowl', red_harness: 'harness',
+    iron_nautilus_armor: 'nautilus_armor', light: 'light', light_block_15: 'light', structure_void: 'structure_void',
+    cave_vines: 'glow_berries', cave_vines_body_with_berries: 'glow_berries', pottery_sherd: 'pottery_sherd',
+    heart_pottery_sherd: 'heart_pottery_sherd', white_dye: 'dye_powder', black_dye: 'dye_lump', lime_dye: 'dye_round', red_dye: 'dye',
+  };
+  for (const [id, sprite] of Object.entries(expect)) assert.equal(itemArt(`minecraft:${id}`).sprite, sprite, id);
+  assert.equal(itemArt('minecraft:debug_stick').glint, true);
+  assert.notEqual(itemArt('minecraft:red_harness').a, itemArt('minecraft:blue_harness').a);
+  assert.equal(itemArt('myaddon:thing').sprite, 'unknown');
+});
+
 test('Bedrock ids are mapped to the names the art is drawn for', () => {
   assert.equal(canonicalName('minecraft:netherbrick'), 'nether_brick');
   assert.equal(canonicalName('minecraft:nether_brick'), 'nether_bricks');
