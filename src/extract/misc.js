@@ -161,4 +161,4 @@ function keyStats(world) {
   };
 }
 
-export { extractMisc, extractScoreboard, extractMaps, extractVillages, extractPortals, extractStructures, keyStats };
+export { safe, extractMisc, extractScoreboard, extractMaps, extractVillages, extractPortals, extractStructures, keyStats };
