@@ -521,15 +521,18 @@ function gearReport(players, blockEntities, entities) {
 
 // ---------- wealth ----------
 
+// Common blocks nobody needs a chest of; a pile of them in a player's pockets is hoarding.
+const JUNK = /^minecraft:(dirt|coarse_dirt|cobblestone|cobbled_deepslate|stone|gravel|sand|netherrack|andesite|diorite|granite|tuff|deepslate|rotten_flesh|poisonous_potato|spider_eye|bone|string)$/;
+
 /** Estimated value (in diamonds) per player, per base and for the whole world. */
 function wealthReport(players, blockEntities, entities, bases) {
   const ranked = [];
   for (const p of players) {
     const carried = [...p.inventory, ...p.armor.filter(Boolean), ...p.offhand];
-    let inv = 0, ender = 0;
-    for (const it of flattenItems(carried)) inv += itemValue(it);
-    for (const it of flattenItems(p.enderChest)) ender += itemValue(it);
-    ranked.push({ key: p.key, role: p.role, carried: Math.round(inv), enderChest: Math.round(ender), total: Math.round(inv + ender) });
+    let inv = 0, ender = 0, junk = 0;
+    for (const it of flattenItems(carried)) { inv += itemValue(it); if (JUNK.test(it.item)) junk += it.count; }
+    for (const it of flattenItems(p.enderChest)) { ender += itemValue(it); if (JUNK.test(it.item)) junk += it.count; }
+    ranked.push({ key: p.key, role: p.role, carried: Math.round(inv), enderChest: Math.round(ender), total: Math.round(inv + ender), junk });
   }
   const top = [];
   let world = 0;
@@ -544,6 +547,7 @@ function wealthReport(players, blockEntities, entities, bases) {
   return {
     world: Math.round(world),
     players: ranked.sort((a, b) => b.total - a.total),
+    hoarders: ranked.filter(p => p.junk > 0).sort((a, b) => b.junk - a.junk),
     bases: bases.map(b => ({ id: b.id, name: b.name, dimension: b.dimension, center: b.center, value: b.value })).sort((a, b) => b.value - a.value),
     top: top.slice(0, 100),
   };

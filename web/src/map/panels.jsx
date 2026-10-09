@@ -1,7 +1,7 @@
 // Side-panel content of each map view: the ranking or list that used to be its own page.
 import { useMemo, useState } from 'react';
 import {
-  Layers, Castle, Archive, Store, Waypoints, PawPrint, Gauge, Trees, Search, Info, Loader2, X, BookOpen, ChevronRight,
+  Layers, Castle, Archive, Store, Waypoints, PawPrint, Gauge, Trees, Search, Info, Loader2, X, BookOpen, ChevronRight, Skull,
 } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { BarList, Tabs } from '../components/ui.jsx';
@@ -329,6 +329,25 @@ function BiomesPanel({ biomes, hoverBiome, biome, setBiome }) {
 const ITEM_QUICK = ['diamond', 'netherite', 'elytra', 'totem', 'shulker_box', 'enchanted_book', 'beacon|nether_star'];
 const BLOCK_QUICK = ['diamond_ore', 'ancient_debris', 'spawner|mob_spawner', 'beacon', 'end_portal_frame', 'enchanting_table', 'bed'];
 
+/** A plain list of one layer's markers, for views that are just that layer. */
+function LayerList({ layer, markers, select, selected, title, empty }) {
+  const rows = markers.filter(m => m.layer === layer);
+  if (!rows.length) return <p className="muted small">{empty}</p>;
+  const L = LAYER[layer];
+  return (
+    <>
+      <h4>{title} <span className="muted">{fmt(rows.length)}</span></h4>
+      <List rows={rows.map(m => ({
+        key: m.key, icon: <L.icon size={16} color={L.color} />, title: m.label, sub: m.detail,
+        right: `${Math.round(m.x)}, ${Math.round(m.z)}`, active: m === selected, onClick: () => select(m),
+      }))} />
+    </>
+  );
+}
+
+const AnimalsPanel = props => <LayerList {...props} layer="pets" title="Pets e mobs com nome" empty="Nenhum pet ou mob com nome nesta dimensão." />;
+const GraveyardPanel = props => <LayerList {...props} layer="deaths" title="Última morte de cada jogador" empty="Nenhuma morte registrada nesta dimensão." />;
+
 function SearchPanel({ search, setSearch, searchState, hits, dim, jump, select, selected, markers }) {
   const [text, setText] = useState(search.q);
   const run = q => setSearch({ ...search, q: q.trim() });
@@ -379,8 +398,10 @@ export const VIEWS = [
   { id: 'villagers', label: 'Vilas e aldeões', icon: Store, layers: ['villages', 'villagers'], Panel: VillagersPanel },
   { id: 'portals', label: 'Portais', icon: Waypoints, layers: ['portals'], Panel: PortalsPanel },
   { id: 'mobs', label: 'Mobs', icon: PawPrint, layers: ['mobs'], Panel: MobsPanel },
+  { id: 'animals', label: 'Zoológico e pets', icon: PawPrint, layers: ['pets'], Panel: AnimalsPanel },
   { id: 'lag', label: 'Lag e farms', icon: Gauge, layers: ['farms', 'heavy'], overlay: 'lag', Panel: LagPanel },
   { id: 'biomes', label: 'Biomas', icon: Trees, layers: ['players'], overlay: 'biomes', Panel: BiomesPanel },
+  { id: 'graveyard', label: 'Cemitério', icon: Skull, layers: ['deaths', 'players'], Panel: GraveyardPanel },
   { id: 'search', label: 'Busca', icon: Search, layers: ['hits', 'players'], Panel: SearchPanel },
 ];
 export const VIEW = Object.fromEntries(VIEWS.map(v => [v.id, v]));

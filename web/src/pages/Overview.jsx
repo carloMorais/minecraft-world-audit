@@ -1,6 +1,6 @@
 import {
   CalendarDays, Clock, ChevronRight, Gem, Users, PawPrint, Mountain, Archive, Copy, Check, Heart, Star,
-  Castle, Store, Waypoints, Gauge, Trees,
+  Castle, Store, Waypoints, Gauge, Trees, Skull,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '../client.js';
@@ -92,7 +92,8 @@ function Treasures({ totals, go }) {
 
 const MAP_VIEWS = [
   ['bases', 'Bases', Castle], ['containers', 'Baús', Archive], ['villagers', 'Vilas e aldeões', Store], ['portals', 'Portais', Waypoints],
-  ['mobs', 'Mobs', PawPrint], ['lag', 'Lag e farms', Gauge], ['biomes', 'Biomas', Trees],
+  ['mobs', 'Mobs', PawPrint], ['animals', 'Zoológico e pets', PawPrint], ['lag', 'Lag e farms', Gauge], ['biomes', 'Biomas', Trees],
+  ['graveyard', 'Cemitério', Skull],
 ];
 
 export default function Overview({ icon, go }) {
@@ -129,7 +130,7 @@ export default function Overview({ icon, go }) {
                     <button type="button" key={d} className="dim-bar" onClick={() => go('map', { dim: d })} title={`Abrir o mapa do ${DIM_LABEL[d]}`}>
                       <div className="dim-bar-head"><span className="dot" style={{ background: DIM_COLOR[d] }} />{DIM_LABEL[d]}<b>{fmt(c.chunks)} chunks</b></div>
                       <div className="track"><span style={{ width: `${(100 * c.chunks) / totalChunks}%`, background: DIM_COLOR[d] }} /></div>
-                      <small>x {fmt(c.boundsBlocks.x[0])} → {fmt(c.boundsBlocks.x[1])} · z {fmt(c.boundsBlocks.z[0])} → {fmt(c.boundsBlocks.z[1])}</small>
+                      <small>x {fmt(c.boundsBlocks.x[0])} → {fmt(c.boundsBlocks.x[1])} · z {fmt(c.boundsBlocks.z[0])} → {fmt(c.boundsBlocks.z[1])} · até {fmt(Math.max(...c.boundsBlocks.x.map(Math.abs), ...c.boundsBlocks.z.map(Math.abs)))} blocos da origem</small>
                     </button>
                   ))}
                 </div>
