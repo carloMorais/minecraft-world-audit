@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Boxes, Hammer, Droplets, Search, Info } from 'lucide-react';
+import { Boxes, Hammer, Droplets, Search, Info, Map as MapIcon } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { useHashParam } from '../route.js';
-import { Panel, Async, PageHeader, BarList, Tabs, SearchInput, Empty, StatCard, CoordLink } from '../components/ui.jsx';
+import { Panel, Async, BarList, Tabs, SearchInput, Empty, StatCard, CoordLink } from '../components/ui.jsx';
 import { blockColor } from '../../../src/extract/surface.js';
 import { fmt, fmtCompact, prettyName, DIM_LABEL, DIM_COLOR, sortDims } from '../format.js';
 
@@ -30,7 +30,7 @@ function FindBlock({ dims, go }) {
         <Async state={result} loadingText="Varrendo todos os subchunks…" loadingSub="Isso decodifica o mundo inteiro, alguns segundos.">
           {r => (r.total === 0 ? <Empty text={`Nenhum bloco corresponde a “${query}”`} /> : (
             <>
-              <p className="muted">{fmt(r.total)} blocos encontrados{r.total > r.shown ? ` · mostrando ${fmt(r.shown)}` : ''}</p>
+              <div className="toolbar"><p className="muted">{fmt(r.total)} blocos encontrados{r.total > r.shown ? ` · mostrando ${fmt(r.shown)}` : ''}</p><button type="button" className="btn btn-sm" onClick={() => go('map', { view: 'search', mode: 'blocks', q: query, dim: dim === 'all' ? r.hits[0]?.dimension : dim })}><MapIcon size={14} /> Ver todos no mapa</button></div>
               <div className="table-wrap short">
                 <table className="table">
                   <thead><tr><th /><th>Bloco</th><th>Dimensão</th><th>Coordenadas</th></tr></thead>
@@ -58,8 +58,7 @@ export default function Blocks({ go }) {
   const state = useQuery('blocks');
   const [dim, setDim] = useHashParam('dim', '');
   return (
-    <div className="page">
-      <PageHeader title="Blocos" subtitle="Contagem de cada bloco salvo no mundo, por dimensão, e busca de coordenadas." />
+    <>
       <Async state={state} loadingText="Contando todos os blocos do mundo…" loadingSub="Centenas de milhões de posições são decodificadas no seu navegador. Leva alguns segundos.">
         {C => {
           const dims = sortDims(Object.keys(C.dimensions));
@@ -89,6 +88,6 @@ export default function Blocks({ go }) {
           );
         }}
       </Async>
-    </div>
+    </>
   );
 }

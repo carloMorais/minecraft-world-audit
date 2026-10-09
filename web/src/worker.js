@@ -8,7 +8,7 @@ import { extractLevel } from '../../src/extract/level.js';
 import { extractPlayers } from '../../src/extract/players.js';
 import { extractEntities, summarizeEntities } from '../../src/extract/entities.js';
 import { extractBlockEntities, summarizeBlockEntities } from '../../src/extract/blockentities.js';
-import { chunkCoverage, blockCensus, findBlocks, biomeCensus } from '../../src/extract/terrain.js';
+import { chunkCoverage, blockCensus, findBlocks, biomeCensus, biomeSurface } from '../../src/extract/terrain.js';
 import { extractMisc, keyStats } from '../../src/extract/misc.js';
 import { findItems, worldItemTotals } from '../../src/extract/search.js';
 import { totalByItem } from '../../src/extract/items.js';
@@ -29,6 +29,7 @@ const players = () => memo('players', () => extractPlayers(world));
 const entities = () => memo('entities', () => extractEntities(world));
 const blockEntities = () => memo('blockEntities', () => extractBlockEntities(world));
 const misc = () => memo('misc', () => extractMisc(world, players()));
+const surface = dim => memo(`surface:${dim}`, () => renderSurface(world, DIM_IDS[dim]));
 const activity = () => memo('activity', () => chunkActivity(world, blockEntities(), entities()));
 const bases = () => memo('bases', () => findBases({ rows: activity(), blockEntities: blockEntities(), entities: entities(), players: players(), villages: misc().villages, value: true }));
 
@@ -130,7 +131,9 @@ const methods = {
     if (v === undefined) throw new Error(`chave não encontrada: ${key}`);
     try { return { nbt: toPlain(readNbtAll(v), true) }; } catch { return { hex: v.subarray(0, 4096).toString('hex'), size: v.length }; }
   },
-  surface: ({ dim }) => memo(`surface:${dim}`, () => renderSurface(world, DIM_IDS[dim])),
+  surface: ({ dim }) => surface(dim),
+  // biome of the top block of each column, same grid as the surface
+  biomeMap: ({ dim }) => memo(`biomeMap:${dim}`, () => { const s = surface(dim); return s && biomeSurface(world, DIM_IDS[dim], s); }),
   mapItem: ({ id }) => {
     const m = world.nbt(`map_${id}`);
     return m?.colors ? Uint8ClampedArray.from(m.colors, b => b & 0xff) : null;
@@ -153,6 +156,10 @@ onmessage = async ({ data: { id, method, args } }) => {
       const rgba = new Uint8ClampedArray(result.rgba); // copy: keep the cached original
       result = { minX: result.minX, minZ: result.minZ, width: result.width, height: result.height, chunks: result.chunks, rgba };
       transfer.push(rgba.buffer);
+    } else if (method === 'biomeMap' && result) {
+      const ids = new Uint16Array(result.ids);
+      result = { minX: result.minX, minZ: result.minZ, width: result.width, height: result.height, names: result.names, counts: result.counts, ids };
+      transfer.push(ids.buffer);
     } else if (method === 'icon' && result) {
       result = new Uint8Array(result);
       transfer.push(result.buffer);

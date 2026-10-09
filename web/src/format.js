@@ -102,3 +102,29 @@ export function distance(from, dim, position) {
 }
 
 export const fmtDistance = d => (d == null ? '—' : d >= 10000 ? `${fmtCompact(d)} blocos` : `${fmt(d)} blocos`);
+
+const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const fold = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** "player player_server_… inventory > shulker_box" → "Jogador 2 · inventário › Caixa de shulker". */
+export function whereLabel(w, names) {
+  return w.replace(/^player (\S+) (inventory|ender chest)/, (_, who, place) => {
+    const name = who === 'host' || who === '~local_player' ? 'Host' : names.get(who) || `Jogador ${who.replace('player_server_', '').slice(0, 8)}`;
+    return `${name} · ${place === 'inventory' ? 'inventário' : 'ender chest'}`;
+  })
+    .replace(/^([a-z0-9_]+:[a-z0-9_.]+)/, id => prettyName(id))
+    .replace(/ > ([a-z0-9_]+)/g, (_, id) => ` › ${prettyName(id)}`)
+    .replace(/ > /g, ' › ')
+    .replace(/§./g, '');
+}
+
+/**
+ * The worker matches ids ("diamond_sword"); people also type Portuguese names ("espada").
+ * Plain-text queries also match the pt-BR name of every item present in the world (accent-insensitive).
+ */
+export function workerQuery(q, totals) {
+  if (!totals || /[\\^$|()[\]{}*+?]/.test(q)) return q;
+  const needle = fold(q);
+  const ids = Object.keys(totals).filter(id => id && !id.toLowerCase().includes(q.toLowerCase()) && fold(prettyName(id)).includes(needle));
+  return ids.length ? `${escape(q)}|^(?:${ids.map(escape).join('|')})$` : q;
+}

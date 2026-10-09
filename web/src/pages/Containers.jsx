@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Archive } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { useHashParam } from '../route.js';
-import { Async, PageHeader, Tabs, SearchInput, Empty, Badge, CoordLink } from '../components/ui.jsx';
+import { Async, Tabs, SearchInput, Empty, Badge, CoordLink } from '../components/ui.jsx';
 import { SlotGrid, Slot, TooltipScope } from '../components/inventory.jsx';
 import { fmt, prettyName, DIM_LABEL, DIM_COLOR } from '../format.js';
 import McText from '../components/McText.jsx';
@@ -38,8 +38,7 @@ export default function Containers({ go }) {
   const [q, setQ] = useHashParam('q', '');
   const [limit, setLimit] = useState(60);
   return (
-    <div className="page">
-      <PageHeader title="Baús e containers" subtitle="Todo bloco que guarda itens: baús, barris, shulkers, funis, fornalhas, molduras, atris, toca-discos…" />
+    <>
       <Async state={state} loadingText="Abrindo os baús…">
         {all => {
           const types = {};
@@ -79,6 +78,6 @@ export default function Containers({ go }) {
           );
         }}
       </Async>
-    </div>
+    </>
   );
 }

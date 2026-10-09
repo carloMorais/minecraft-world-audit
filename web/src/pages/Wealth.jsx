@@ -1,11 +1,11 @@
 import { Coins, Info, Users, Castle, Gem, Sparkles } from 'lucide-react';
 import { useQuery } from '../client.js';
-import { Panel, Async, PageHeader, BarList, StatCard, Empty, CoordLink } from '../components/ui.jsx';
+import { Panel, Async, BarList, StatCard, Empty, CoordLink } from '../components/ui.jsx';
 import { ItemIcon } from '../components/icons.jsx';
 import McText from '../components/McText.jsx';
 import { fmt, prettyName, mobName, playerNames, DIM_COLOR } from '../format.js';
 import { CONTAINER_LABEL } from '../containers.js';
-import { baseName } from './Bases.jsx';
+import { baseName } from '../map/layers.js';
 
 const diamonds = v => `≈ ${fmt(v)}`;
 
@@ -30,8 +30,7 @@ export default function Wealth({ go }) {
   const players = useQuery('players');
   const names = playerNames(players.data);
   return (
-    <div className="page">
-      <PageHeader title="Patrimônio" subtitle="Quanto vale o que cada jogador carrega e cada base guarda, convertido em diamantes para dar para comparar." />
+    <>
       <div className="note">
         <Info size={15} />
         <span>Estimativa em <b>diamantes</b>, não é um preço do jogo: um bloco de diamante vale 9, uma barra de netherite 5, élitros 25, uma estrela do Nether 20, ferramentas e armaduras de diamante pelo número de diamantes da receita, e cada nível de encantamento soma um pouco. Itens comuns (terra, pedra, comida) valem zero.</span>
@@ -46,7 +45,7 @@ export default function Wealth({ go }) {
               <div className="stats-grid">
                 <StatCard icon={Coins} label="Mundo inteiro" value={diamonds(W.world)} sub="diamantes em todos os itens guardados" tone="gold" />
                 <StatCard icon={Users} label="Com os jogadores" value={diamonds(inPlayers)} sub="inventário, armadura e baú do End" tone="green" onClick={() => go('players')} action="Ver jogadores" />
-                <StatCard icon={Castle} label="Nas bases" value={diamonds(inBases)} sub={`${fmt(W.bases.length)} bases detectadas`} tone="orange" onClick={() => go('bases')} action="Ver bases" />
+                <StatCard icon={Castle} label="Nas bases" value={diamonds(inBases)} sub={`${fmt(W.bases.length)} bases detectadas`} tone="orange" onClick={() => go('map', { view: 'bases' })} action="Ver bases no mapa" />
               </div>
               <div className="grid-2">
                 <Panel title="Jogadores" icon={Users}>
@@ -73,11 +72,11 @@ export default function Wealth({ go }) {
                     </>
                   ) : <Empty text="Nenhum jogador salvo" />}
                 </Panel>
-                <Panel title="Bases" icon={Castle} actions={<button type="button" className="link-btn" onClick={() => go('bases')}>Todas →</button>}>
+                <Panel title="Bases" icon={Castle} actions={<button type="button" className="link-btn" onClick={() => go('map', { view: 'bases' })}>No mapa →</button>}>
                   <BarList
                     rows={bases.map(b => ({ key: b.id, label: baseName(b), value: b.value, color: DIM_COLOR[b.dimension] || 'var(--orange)' }))}
                     format={diamonds}
-                    onSelect={r => go('bases', { id: r.key })}
+                    onSelect={r => go('map', { view: 'bases', sel: `bases:${r.key}` })}
                     empty="Nenhuma base guarda itens de valor"
                   />
                 </Panel>
@@ -110,6 +109,6 @@ export default function Wealth({ go }) {
           );
         }}
       </Async>
-    </div>
+    </>
   );
 }

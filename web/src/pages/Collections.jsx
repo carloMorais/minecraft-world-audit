@@ -1,6 +1,6 @@
-import { Trophy, PawPrint, Trees, Info } from 'lucide-react';
+import { Trophy, PawPrint, Trees, Info, Skull, Sparkles } from 'lucide-react';
 import { useQuery } from '../client.js';
-import { Panel, PageHeader, Loading, ErrorBox, StatCard } from '../components/ui.jsx';
+import { Panel, Loading, ErrorBox, StatCard } from '../components/ui.jsx';
 import { ItemIcon, MobIcon } from '../components/icons.jsx';
 import { fmt, prettyName, mobName, DIM_LABEL, DIM_COLOR } from '../format.js';
 import { ITEM_COLLECTIONS, TAMEABLE, CURRENT_BIOMES, BIOME_LABEL, colorOf } from '../collections.js';
@@ -37,11 +37,48 @@ function Checklist({ title, icon, hint, entries }) {
   );
 }
 
+/** Achievements state, the dragon and what the world keeps (moved here from the overview). */
+function Achievements({ S, go }) {
+  const L = S.level;
+  const dragon = S.dragonFight?.dragonKilled || S.dragonFight?.previouslyKilled;
+  return (
+    <Panel title="Conquistas e progresso" icon={Trophy}>
+      <div className="kv-cards">
+        <div className={`kv-card ${L.achievements.disabled ? 'bad' : 'good'}`}>
+          <Trophy size={18} />
+          <div>
+            <strong>{L.achievements.disabled ? 'Conquistas desativadas' : 'Conquistas permitidas'}</strong>
+            <small>{L.achievements.disabled ? `Motivo: ${L.achievements.reason.map(r => (r.includes('cheats') ? 'cheats/comandos ativados' : 'mundo já foi aberto no criativo')).join(' e ')}` : 'O progresso é salvo na conta Xbox, não no mundo.'}</small>
+          </div>
+        </div>
+        <div className={`kv-card ${dragon ? 'good' : ''}`}>
+          <Skull size={18} />
+          <div>
+            <strong>Ender Dragon {dragon ? 'derrotado' : 'ainda vivo'}</strong>
+            <small>{S.dragonFight ? `${S.dragonFight.gatewaysRemaining ?? '?'} portais de passagem restantes` : 'O End ainda não foi visitado'}</small>
+          </div>
+        </div>
+        <div className="kv-card">
+          <Sparkles size={18} />
+          <div>
+            <strong>{fmt(S.counts.villages)} vilas · {fmt(S.counts.portals)} portais · {fmt(S.counts.maps)} mapas</strong>
+            <small>{fmt(S.counts.objectives)} objetivos de scoreboard · {fmt(S.counts.structures)} estruturas salvas</small>
+          </div>
+        </div>
+      </div>
+      <div className="note">
+        <Info size={15} />
+        <span>O Bedrock <b>não grava</b> no mundo estatísticas como mobs mortos ou blocos colocados/minerados. Elas só aparecem quando um add-on as registra no scoreboard (veja em <button type="button" className="link-btn" onClick={() => go('advanced', { tab: 'records' })}>Avançado › Registros</button>).</span>
+      </div>
+    </Panel>
+  );
+}
+
 export default function Collections({ go }) {
   const items = useQuery('items');
   const summary = useQuery('summary');
   const biomes = useQuery('biomes');
-  if (items.error) return <div className="page"><ErrorBox error={items.error} /></div>;
+  if (items.error) return <ErrorBox error={items.error} />;
 
   const totals = items.data || {};
   const lists = ITEM_COLLECTIONS.map(c => ({
@@ -60,7 +97,7 @@ export default function Collections({ go }) {
   for (const e of summary.data?.entities.tamedOrOwned || []) tamed[e.type] = (tamed[e.type] || 0) + 1;
   const tameEntries = TAMEABLE.map(id => ({
     key: id, label: mobName(id), have: !!tamed[id], count: tamed[id], icon: <MobIcon id={id} size={32} />,
-    onClick: tamed[id] ? () => go('entities', { type: id }) : undefined,
+    onClick: tamed[id] ? () => go('map', { view: 'mobs', cat: 'pets', type: id }) : undefined,
   }));
 
   const biomeLists = Object.entries(CURRENT_BIOMES).map(([dim, list]) => ({
@@ -78,8 +115,8 @@ export default function Collections({ go }) {
   const have = all.filter(e => e.have).length;
 
   return (
-    <div className="page">
-      <PageHeader title="Coleções" subtitle="Checklists do que o mundo já tem: discos, moldes, fragmentos, cabeças, cores, mobs domados e biomas visitados." />
+    <>
+      {summary.data && <Achievements S={summary.data} go={go} />}
       {items.loading ? <Loading text="Somando itens do mundo…" /> : (
         <>
           <div className="stats-grid">
@@ -98,6 +135,6 @@ export default function Collections({ go }) {
           ))}
         </>
       )}
-    </div>
+    </>
   );
 }

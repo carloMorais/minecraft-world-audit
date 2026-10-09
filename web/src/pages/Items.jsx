@@ -1,44 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Backpack, Search } from 'lucide-react';
+import { Backpack, Search, Map as MapIcon } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { useHashParam } from '../route.js';
-import { Panel, Async, PageHeader, BarList, SearchInput, Empty, Badge, CoordLink, useSort } from '../components/ui.jsx';
+import { Panel, Async, BarList, SearchInput, Empty, Badge, CoordLink, useSort } from '../components/ui.jsx';
 import { ItemIcon } from '../components/icons.jsx';
 import McText from '../components/McText.jsx';
-import { fmt, prettyName, DIM_LABEL, DIM_COLOR, ENCHANT_LABEL, roman, playerNames, hostOf, distance, fmtDistance } from '../format.js';
+import { fmt, prettyName, DIM_LABEL, DIM_COLOR, ENCHANT_LABEL, roman, playerNames, hostOf, distance, fmtDistance, whereLabel as where, workerQuery } from '../format.js';
 
 const QUICK = ['diamond', 'netherite', 'elytra', 'totem', 'enchanted_book', 'shulker_box', 'emerald', 'trident', 'beacon|nether_star', 'golden_apple'];
 const SHOWN = 500;
-const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const fold = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-
-/** "player player_server_… inventory > shulker_box" → "Jogador 2 · inventário › Caixa de shulker". */
-function where(w, names) {
-  return w.replace(/^player (\S+) (inventory|ender chest)/, (_, who, place) => {
-    const name = who === 'host' || who === '~local_player' ? 'Host' : names.get(who) || `Jogador ${who.replace('player_server_', '').slice(0, 8)}`;
-    return `${name} · ${place === 'inventory' ? 'inventário' : 'ender chest'}`;
-  })
-    .replace(/^([a-z0-9_]+:[a-z0-9_.]+)/, id => prettyName(id))
-    .replace(/ > ([a-z0-9_]+)/g, (_, id) => ` › ${prettyName(id)}`)
-    .replace(/ > /g, ' › ')
-    .replace(/§./g, '');
-}
-
-/**
- * The worker matches ids ("diamond_sword"); people also type Portuguese names ("espada").
- * Plain-text queries also match the pt-BR name of every item present in the world (accent-insensitive).
- */
-function workerQuery(q, totals) {
-  if (!totals || /[\\^$|()[\]{}*+?]/.test(q)) return q;
-  const needle = fold(q);
-  const ids = Object.keys(totals).filter(id => id && !id.toLowerCase().includes(q.toLowerCase()) && fold(prettyName(id)).includes(needle));
-  return ids.length ? `${escape(q)}|^(?:${ids.map(escape).join('|')})$` : q;
-}
-
 /** Exact-id queries from the list ("^minecraft:iron_ingot$") read better as the item name. */
 const queryLabel = q => (/^\^[a-z0-9_]+:[a-z0-9_]+\$$/.test(q) ? prettyName(q.slice(1, -1)) : q);
 
-export default function Items({ nav, go }) {
+export default function Items({ go }) {
   const totals = useQuery('items');
   const players = useQuery('players');
   const [query, setQuery] = useHashParam('q', '');
@@ -49,9 +23,6 @@ export default function Items({ nav, go }) {
   const run = v => { const t = v?.trim(); if (t) setQuery(t); };
   const names = playerNames(players.data);
   const host = hostOf(players.data);
-
-  // The sidebar finder navigates here with a new ?q=, also while this page is already open.
-  useEffect(() => { if (nav?.q) { setQ(nav.q); setQuery(nav.q); } }, [nav?.q]); // eslint-disable-line react-hooks/exhaustive-deps
   // Bring the results into view (the page scrolls inside .content, not window).
   useEffect(() => { if (query) resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [query]);
 
@@ -59,8 +30,7 @@ export default function Items({ nav, go }) {
   const [rows, th] = useSort(hits, { name: h => h.name, qty: h => h.count, where: h => where(h.where, names), dist: h => h.dist });
 
   return (
-    <div className="page">
-      <PageHeader title="Itens" subtitle="Onde está cada item do mundo: inventários, ender chests, baús, shulkers dentro de baús, molduras, mobs e itens no chão." />
+    <>
       <Panel>
         <SearchInput value={q} onChange={setQ} onSubmit={run} label="Procurar item" placeholder="Procurar item (ex.: diamante, espada, elytra|totem)…" autoFocus={!query} />
         <div className="quick">
@@ -71,7 +41,7 @@ export default function Items({ nav, go }) {
 
       {query && (
         <div ref={resultsRef} className="scroll-anchor">
-          <Panel title={`Resultado para “${queryLabel(query)}”`} icon={Search} actions={<button type="button" className="link-btn" onClick={() => { setQuery(''); setQ(''); }}>Limpar</button>}>
+          <Panel title={`Resultado para “${queryLabel(query)}”`} icon={Search} actions={<><button type="button" className="btn btn-sm" onClick={() => go('map', { view: 'search', q: query })}><MapIcon size={14} /> Ver no mapa</button><button type="button" className="link-btn" onClick={() => { setQuery(''); setQ(''); }}>Limpar</button></>}>
             <Async state={result.loading || totals.loading ? { loading: true } : result} loadingText="Vasculhando o mundo…">
               {r => (r.hits.length === 0 ? <Empty text={`Nenhum item corresponde a “${queryLabel(query)}”`} /> : (
                 <>
@@ -120,6 +90,6 @@ export default function Items({ nav, go }) {
           }}
         </Async>
       </Panel>
-    </div>
+    </>
   );
 }

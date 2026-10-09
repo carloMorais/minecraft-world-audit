@@ -92,7 +92,8 @@ function blockColor(full) {
 const DIM_START_Y = { 0: 319, 1: 118, 2: 255 }; // nether: start below the bedrock roof
 
 /**
- * Scans every chunk of a dimension. Returns {minX, minZ, width, height, chunks, rgba: Uint8Array}.
+ * Scans every chunk of a dimension. Returns {minX, minZ, width, height, chunks, rgba: Uint8Array, heights: Int16Array}
+ * (heights: Y of the top block or water surface of each column, -32768 where nothing was found).
  * Colours: block colour + water depth tint + hill shading from height differences.
  */
 function renderSurface(world, dim = 0, opts = {}) {
@@ -183,7 +184,7 @@ function renderSurface(world, dim = 0, opts = {}) {
   }
   return {
     minX: minCX * 16, minZ: minCZ * 16, width, height, chunks: byChunk.size,
-    rgba,
+    rgba, heights,
   };
 }
 

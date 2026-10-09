@@ -11,7 +11,15 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '../..');
-const PAGES = ['overview', 'map', 'world', 'players', 'players?view=compare', 'containers', 'items?q=diamond', 'entities', 'blocks', 'biomes', 'bases', 'bases?id=1', 'map?heat=build&layer=bases', 'wealth', 'collections', 'villagers', 'storage', 'gear', 'performance', 'mining', 'mining?ore=diamond', 'portals', 'compare', 'advanced'];
+const PAGES = [
+  'overview', 'map', 'map?view=bases', 'map?view=bases&sel=bases:1', 'map?view=containers', 'map?view=villagers', 'map?view=portals',
+  'map?view=mobs', 'map?view=lag', 'map?view=biomes', 'map?view=search&q=diamond', 'map?view=search&mode=blocks&q=diamond_ore&dim=overworld',
+  'progress', 'players', 'players?view=compare', 'players?tab=wealth', 'players?tab=gear',
+  'items?q=diamond', 'items?tab=containers', 'items?tab=storage', 'items?tab=trades', 'items?tab=maps',
+  'terrain', 'terrain?tab=ores&ore=diamond', 'compare', 'advanced', 'advanced?tab=config', 'advanced?tab=records',
+  // old addresses redirect to their new home
+  'bases?id=1', 'entities', 'world?tab=scoreboard',
+];
 const sample = process.env.SAMPLE || existsSync(join(ROOT, 'samples')) && readdirSync(join(ROOT, 'samples')).find(f => f.endsWith('.mcworld'));
 const chrome = [
   process.env.CHROME,
@@ -69,7 +77,7 @@ test('web app renders every page with a sample world', { skip, timeout: 600_000 
     for (const page of PAGES) {
       await evaluate(`location.hash = ${JSON.stringify(page)}`);
       await sleep(300);
-      const settled = await waitFor('!document.querySelector(".loading, .map-overlay")', 240_000);
+      const settled = await waitFor('!document.querySelector(".loading, .map-overlay, .side-loading, .overlay-hud")', 240_000);
       assert.ok(settled, `#${page} never finished loading`);
       const state = await evaluate('({ page: !!document.querySelector(".page"), error: document.querySelector(".error-box")?.textContent || null })');
       assert.ok(state.page, `#${page} rendered no .page`);

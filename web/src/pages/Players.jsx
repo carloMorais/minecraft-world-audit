@@ -3,7 +3,7 @@ import { Heart, Drumstick, MapPin, Skull, Bed, Sparkles, Columns3, Trophy, BookO
 import { useQuery } from '../client.js';
 import { useHashParam } from '../route.js';
 import { TREASURES, treasureCount } from '../treasures.js';
-import { Panel, Async, Badge, PageHeader, BarList, Empty, CoordLink, useSort } from '../components/ui.jsx';
+import { Panel, Async, Badge, BarList, Empty, CoordLink, useSort } from '../components/ui.jsx';
 import { Slot, SlotGrid, TooltipScope } from '../components/inventory.jsx';
 import { ItemIcon } from '../components/icons.jsx';
 import { fmt, prettyName, DIM_LABEL, GAMEMODE_LABEL, playerNames, isHost } from '../format.js';
@@ -165,8 +165,7 @@ export default function Players({ go }) {
   const [sel, setSel] = useHashParam('p', '');
   const [view, setView] = useHashParam('view', '');
   return (
-    <div className="page">
-      <PageHeader title="Jogadores" subtitle="Tudo o que o mundo guarda de cada jogador: inventário, armadura, ender chest, vida, XP, spawn e morte." />
+    <>
       <Async state={state} loadingText="Lendo jogadores…">
         {players => {
           const idx = Math.max(0, players.findIndex(p => p.key === sel));
@@ -196,6 +195,6 @@ export default function Players({ go }) {
           );
         }}
       </Async>
-    </div>
+    </>
   );
 }

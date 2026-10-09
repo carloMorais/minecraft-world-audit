@@ -123,6 +123,46 @@ function biomeCensus(world) {
   return out;
 }
 
+/**
+ * Biome of the top block of every column, aligned with a `renderSurface` result (needs its `heights`).
+ * Returns {minX, minZ, width, height, ids: Uint16Array (index into `names`, 0xFFFF = none), names, counts}.
+ */
+function biomeSurface(world, dim, surface) {
+  const { minX, minZ, width, height, heights } = surface;
+  const yr = DIMENSION_Y[dim] || { min: 0, max: 15 };
+  const ids = new Uint16Array(width * height).fill(0xffff);
+  const names = [], index = new Map(), counts = [];
+  const slot = b => {
+    let i = index.get(b);
+    if (i === undefined) { i = names.length; index.set(b, i); names.push(BIOMES[b] || `biome_${b}`); counts.push(0); }
+    return i;
+  };
+  for (const [ck, v] of world.chunkRecords(43, dim)) {
+    const ox = ck.x * 16 - minX, oz = ck.z * 16 - minZ;
+    if (ox < 0 || oz < 0 || ox >= width || oz >= height) continue;
+    let d3;
+    try { d3 = decodeData3D(v, { keepIndices: true }); } catch { continue; }
+    const S = d3.sections;
+    if (!S.length) continue;
+    for (let x = 0; x < 16; x++) {
+      for (let z = 0; z < 16; z++) {
+        const p = (oz + z) * width + ox + x;
+        const h = heights[p];
+        if (h === -32768) continue;
+        let si = Math.min(S.length - 1, Math.max(0, Math.floor(h / 16) - yr.min));
+        while (si > 0 && !S[si]) si--;
+        const s = S[si];
+        if (!s) continue;
+        const b = s.indices ? s.palette[s.indices[(x << 8) | (z << 4) | (h & 15)]] : s.palette[0];
+        const i = slot(b);
+        ids[p] = i;
+        counts[i]++;
+      }
+    }
+  }
+  return { minX, minZ, width, height, ids, names, counts };
+}
+
 /** Full block grid of one chunk column (for exporting / inspecting a specific chunk). */
 function readChunk(world, cx, cz, dim = 0) {
   const sections = [];
@@ -140,4 +180,4 @@ function readChunk(world, cx, cz, dim = 0) {
   return sections.sort((a, b) => a.y - b.y);
 }
 
-export { chunkCoverage, blockCensus, findBlocks, biomeCensus, readChunk };
+export { chunkCoverage, blockCensus, findBlocks, biomeCensus, biomeSurface, readChunk };

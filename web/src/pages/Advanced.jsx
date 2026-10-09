@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Database, Download, FileJson, Search } from 'lucide-react';
 import { useQuery, call } from '../client.js';
-import { Panel, Async, PageHeader, SearchInput, ErrorBox, Loading } from '../components/ui.jsx';
+import { Panel, Async, SearchInput, ErrorBox, Loading } from '../components/ui.jsx';
 import { fmt, fmtCompact, downloadJson } from '../format.js';
 
 const EXPORTS = [
@@ -44,8 +44,7 @@ export default function Advanced({ world }) {
     try { downloadJson(`${(world.label || 'mundo').replace(/[^\w-]+/g, '_')}-${what}.json`, await call(what)); } finally { setBusy(null); }
   };
   return (
-    <div className="page">
-      <PageHeader title="Avançado" subtitle="Dados brutos: exportação em JSON, índice do banco de dados e leitura direta de qualquer registro NBT." />
+    <>
       <Panel title="Exportar em JSON" icon={FileJson}>
         <div className="export-grid">
           {EXPORTS.map(([w, label]) => (
@@ -68,6 +67,6 @@ export default function Advanced({ world }) {
           )}
         </Async>
       </Panel>
-    </div>
+    </>
   );
 }

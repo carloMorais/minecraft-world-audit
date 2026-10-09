@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pickaxe, Info, BarChart3, Table2 } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { useHashParam } from '../route.js';
-import { Panel, Async, PageHeader, Tabs, Empty, useSort } from '../components/ui.jsx';
+import { Panel, Async, Tabs, Empty, useSort } from '../components/ui.jsx';
 import { ItemIcon } from '../components/icons.jsx';
 import { fmt, fmtCompact, prettyName, DIM_LABEL, DIM_COLOR, sortDims } from '../format.js';
 
@@ -143,8 +143,7 @@ export default function Mining() {
   const [dim, setDim] = useHashParam('dim', '');
   const [ore, setOre] = useHashParam('ore', '');
   return (
-    <div className="page">
-      <PageHeader title="Minérios por altura" subtitle="Em que altura cada minério aparece neste mundo, contado bloco a bloco nos chunks já gerados." />
+    <>
       <Async state={state} loadingText="Contando minérios camada por camada…" loadingSub="Na primeira vez o terreno inteiro é varrido. Leva alguns segundos.">
         {O => {
           const dims = sortDims(Object.keys(O).filter(d => Object.keys(O[d]).length));
@@ -178,6 +177,6 @@ export default function Mining() {
           );
         }}
       </Async>
-    </div>
+    </>
   );
 }

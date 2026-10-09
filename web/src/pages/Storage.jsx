@@ -1,6 +1,6 @@
 import { Archive, LayoutGrid, PackageCheck, PackageOpen, Combine, Shuffle, Info, Box } from 'lucide-react';
 import { useQuery } from '../client.js';
-import { Panel, Async, PageHeader, StatCard, CoordLink, Empty } from '../components/ui.jsx';
+import { Panel, Async, StatCard, CoordLink, Empty } from '../components/ui.jsx';
 import { ItemIcon } from '../components/icons.jsx';
 import McText, { stripCodes } from '../components/McText.jsx';
 import { fmt, prettyName, DIM_LABEL } from '../format.js';
@@ -30,13 +30,12 @@ export default function Storage({ go }) {
     return b ? (b.name ? stripCodes(b.name) : `Base ${b.id}`) : null;
   };
   return (
-    <div className="page">
-      <PageHeader title="Organização" subtitle="Como estão os baús: quanto espaço sobra, itens espalhados por vários containers e pilhas que dá para juntar." />
+    <>
       <Async state={state} loadingText="Analisando os containers…" loadingSub="Na primeira vez o terreno inteiro é varrido para achar as bases.">
         {S => (
           <>
             <div className="stats-grid six">
-              <StatCard icon={Archive} label="Containers" value={fmt(S.containers)} sub={`${fmt(S.distinctItems)} itens diferentes`} tone="gold" onClick={() => go('containers')} action="Ver baús e containers" />
+              <StatCard icon={Archive} label="Containers" value={fmt(S.containers)} sub={`${fmt(S.distinctItems)} itens diferentes`} tone="gold" onClick={() => go('items', { tab: 'containers' })} action="Ver baús e containers" />
               <StatCard icon={LayoutGrid} label="Slots ocupados" value={`${pct(S.slotsUsed, S.slotsTotal)}%`} sub={`${fmt(S.slotsUsed)} de ${fmt(S.slotsTotal)}`} tone="blue" />
               <StatCard icon={PackageCheck} label="Cheios" value={fmt(S.full)} sub="todos os slots ocupados" tone="red" />
               <StatCard icon={PackageOpen} label="Vazios" value={fmt(S.empty)} sub="sem nenhum item" tone="teal" />
@@ -107,7 +106,7 @@ export default function Storage({ go }) {
                             </td>
                             <td><Fill value={c.slots} max={c.capacity} color={c.slots >= c.capacity ? 'var(--red)' : 'var(--gold)'} /></td>
                             <td className="num">{fmt(c.total)}</td>
-                            <td>{base ? <button type="button" className="link-btn" onClick={() => go('bases', { id: c.base })}>{base}</button> : <span className="muted">—</span>}</td>
+                            <td>{base ? <button type="button" className="link-btn" onClick={() => go('map', { view: 'bases', sel: `bases:${c.base}` })}>{base}</button> : <span className="muted">—</span>}</td>
                             <td>{DIM_LABEL[c.dimension] || c.dimension}</td>
                             <td className="nowrap"><CoordLink go={go} dim={c.dimension} position={c.position} label={c.customName ? stripCodes(c.customName) : label} /></td>
                           </tr>
@@ -121,6 +120,6 @@ export default function Storage({ go }) {
           </>
         )}
       </Async>
-    </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { Wrench, ShieldAlert, BookOpen, BookX, Info } from 'lucide-react';
 import { useQuery } from '../client.js';
-import { Panel, Async, PageHeader, StatCard, CoordLink, Empty, Badge } from '../components/ui.jsx';
+import { Panel, Async, StatCard, CoordLink, Empty, Badge } from '../components/ui.jsx';
 import { ItemIcon } from '../components/icons.jsx';
 import McText, { stripCodes } from '../components/McText.jsx';
 import { fmt, prettyName, ENCHANT_LABEL, roman, playerNames } from '../format.js';
@@ -57,8 +57,7 @@ export default function Gear({ go }) {
   const players = useQuery('players');
   const names = playerNames(players.data);
   return (
-    <div className="page">
-      <PageHeader title="Equipamento" subtitle="Ferramentas e armaduras quase quebrando, equipamento bom sem Remendo ou Inquebrável e os livros encantados que existem no mundo." />
+    <>
       <Async state={state} loadingText="Conferindo durabilidade e encantamentos…">
         {G => {
           const books = {};
@@ -155,6 +154,6 @@ export default function Gear({ go }) {
           );
         }}
       </Async>
-    </div>
+    </>
   );
 }

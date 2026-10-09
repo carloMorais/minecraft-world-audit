@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  LayoutDashboard, Map as MapIcon, Users, PawPrint, Archive, Backpack, Boxes, Trees, Globe2, Terminal, LogOut, Menu, X, Search,
-  UploadCloud, FolderOpen, Repeat, Castle, Gauge, Pickaxe, Trophy, Store, PackageOpen, Shield, Coins, Waypoints, GitCompare,
+  LayoutDashboard, Map as MapIcon, Users, Backpack, Mountain, Trophy, Terminal, GitCompare, LogOut, Menu, X, Search, UploadCloud, FolderOpen, Repeat,
 } from 'lucide-react';
 import { openWorld, call } from './client.js';
 import { parseHash, hashFor } from './route.js';
@@ -10,55 +9,60 @@ import ReloadGuard from './components/ReloadGuard.jsx';
 import { Modal } from './components/ui.jsx';
 import Overview from './pages/Overview.jsx';
 import MapPage from './pages/MapPage.jsx';
-import Players from './pages/Players.jsx';
-import Entities from './pages/Entities.jsx';
-import Containers from './pages/Containers.jsx';
-import Items from './pages/Items.jsx';
-import Blocks from './pages/Blocks.jsx';
-import Biomes from './pages/Biomes.jsx';
-import WorldData from './pages/WorldData.jsx';
-import Advanced from './pages/Advanced.jsx';
-import Bases from './pages/Bases.jsx';
-import Wealth from './pages/Wealth.jsx';
-import Performance from './pages/Performance.jsx';
-import Mining from './pages/Mining.jsx';
-import Storage from './pages/Storage.jsx';
-import Gear from './pages/Gear.jsx';
-import Collections from './pages/Collections.jsx';
-import Villagers from './pages/Villagers.jsx';
-import Portals from './pages/Portals.jsx';
 import Compare from './pages/Compare.jsx';
+import { ItemsPage, PlayersPage, TerrainPage, ProgressPage, AdvancedPage } from './pages/sections.jsx';
 
 const PAGES = [
   { id: 'overview', label: 'Visão geral', icon: LayoutDashboard, el: Overview, group: 'Mundo' },
   { id: 'map', label: 'Mapa', icon: MapIcon, el: MapPage, group: 'Mundo' },
-  { id: 'world', label: 'Vilas, mapas e mais', icon: Globe2, el: WorldData, group: 'Mundo' },
-  { id: 'players', label: 'Jogadores', icon: Users, el: Players, group: 'Conteúdo' },
-  { id: 'containers', label: 'Baús e containers', icon: Archive, el: Containers, group: 'Conteúdo' },
-  { id: 'items', label: 'Itens', icon: Backpack, el: Items, group: 'Conteúdo' },
-  { id: 'entities', label: 'Mobs e entidades', icon: PawPrint, el: Entities, group: 'Conteúdo' },
-  { id: 'blocks', label: 'Blocos', icon: Boxes, el: Blocks, group: 'Terreno' },
-  { id: 'biomes', label: 'Biomas', icon: Trees, el: Biomes, group: 'Terreno' },
-  { id: 'bases', label: 'Bases', icon: Castle, el: Bases, group: 'Análise' },
-  { id: 'wealth', label: 'Patrimônio', icon: Coins, el: Wealth, group: 'Análise' },
-  { id: 'collections', label: 'Coleções', icon: Trophy, el: Collections, group: 'Análise' },
-  { id: 'villagers', label: 'Aldeões e trocas', icon: Store, el: Villagers, group: 'Análise' },
-  { id: 'storage', label: 'Organização', icon: PackageOpen, el: Storage, group: 'Análise' },
-  { id: 'gear', label: 'Equipamento', icon: Shield, el: Gear, group: 'Análise' },
-  { id: 'performance', label: 'Lag e farms', icon: Gauge, el: Performance, group: 'Análise' },
-  { id: 'mining', label: 'Minérios por altura', icon: Pickaxe, el: Mining, group: 'Análise' },
-  { id: 'portals', label: 'Rede de portais', icon: Waypoints, el: Portals, group: 'Análise' },
+  { id: 'progress', label: 'Progresso', icon: Trophy, el: ProgressPage, group: 'Mundo' },
+  { id: 'players', label: 'Jogadores', icon: Users, el: PlayersPage, group: 'Conteúdo' },
+  { id: 'items', label: 'Itens', icon: Backpack, el: ItemsPage, group: 'Conteúdo' },
+  { id: 'terrain', label: 'Terreno', icon: Mountain, el: TerrainPage, group: 'Conteúdo' },
   { id: 'compare', label: 'Comparar saves', icon: GitCompare, el: Compare, group: 'Ferramentas' },
-  { id: 'advanced', label: 'Avançado', icon: Terminal, el: Advanced, group: 'Ferramentas' },
+  { id: 'advanced', label: 'Avançado', icon: Terminal, el: AdvancedPage, group: 'Ferramentas' },
 ];
+
+/** Pages that became map views or tabs: old links (and bookmarks) land on their new home. */
+const MOVED = {
+  bases: p => ['map', { view: 'bases', sel: p.id ? `bases:${p.id}` : null }],
+  performance: p => ['map', { view: 'lag', dim: p.dim }],
+  portals: () => ['map', { view: 'portals' }],
+  villagers: () => ['map', { view: 'villagers' }],
+  entities: p => ['map', { view: 'mobs', cat: p.cat, type: p.type, dim: p.dim !== 'all' ? p.dim : null }],
+  biomes: p => ['map', { view: 'biomes', dim: p.dim }],
+  containers: p => ['items', { tab: 'containers', q: p.q, type: p.type }],
+  storage: () => ['items', { tab: 'storage' }],
+  wealth: () => ['players', { tab: 'wealth' }],
+  gear: () => ['players', { tab: 'gear' }],
+  blocks: p => ['terrain', { dim: p.dim, fq: p.fq }],
+  mining: p => ['terrain', { tab: 'ores', dim: p.dim, ore: p.ore }],
+  collections: () => ['progress', {}],
+  world: p => (p.tab === 'maps' ? ['items', { tab: 'maps' }] : ['scoreboard', 'structures', 'other'].includes(p.tab) ? ['advanced', { tab: 'records', rec: p.tab }] : ['map', { view: 'villagers' }]),
+};
+
 const GROUPS = [...new Set(PAGES.map(p => p.group))];
 const BASE_TITLE = 'MCX — Bedrock World Explorer';
 
-/** Current page and its params, following hash changes (links, back/forward, go()). */
+/** parseHash, rewriting the hash of a page that moved. */
+function readRoute() {
+  const r = parseHash();
+  const moved = MOVED[r.page];
+  if (!moved) return r;
+  const [page, params] = moved(r.params);
+  window.history.replaceState(null, '', hashFor(page, params));
+  return parseHash();
+}
+
+/**
+ * Current page and its params, following hash changes (links, back/forward, go()). `seq` counts
+ * navigations: pages read their filters from the URL when they mount, so each navigation remounts.
+ * Filter changes inside a page use replaceState, which fires no hashchange.
+ */
 function useRoute() {
-  const [route, setRoute] = useState(parseHash);
+  const [route, setRoute] = useState(() => ({ ...readRoute(), seq: 0 }));
   useEffect(() => {
-    const f = () => setRoute(parseHash());
+    const f = () => setRoute(r => ({ ...readRoute(), seq: r.seq + 1 }));
     window.addEventListener('hashchange', f);
     return () => window.removeEventListener('hashchange', f);
   }, []);
@@ -92,7 +96,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [icon, setIcon] = useState(null);
-  const { page, params: nav } = useRoute();
+  const { page, params: nav, seq } = useRoute();
   const [drawer, setDrawer] = useState(false);
   const [switching, setSwitching] = useState(false); // true, or the File dropped on the page
   const fileRef = useRef();
@@ -184,7 +188,7 @@ export default function App() {
         </div>
       </aside>
       <ReloadGuard worldName={world.label} />
-      <main className="content" key={current.id}>
+      <main className="content" key={`${current.id}:${seq}`}>
         <Page world={world} icon={icon} go={go} nav={nav} />
       </main>
       <input ref={fileRef} type="file" accept=".mcworld,.zip" hidden onChange={e => e.target.files[0] && open({ file: e.target.files[0] })} />
