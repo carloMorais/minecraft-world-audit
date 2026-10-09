@@ -74,7 +74,7 @@ export default function MapPage({ nav, go }) {
   const players = useQuery('players');
   const dims = coverage.data ? sortDims(Object.keys(coverage.data)) : ['overworld'];
   const [dim, setDimParam] = useHashParam('dim', 'overworld');
-  const [viewId, setViewParam] = useHashParam('view', 'all');
+  const [viewId, setViewParam] = useHashParam('view', 'bases');
   const view = VIEW[viewId] || VIEW.all;
   const [layers, setLayers] = useState(() => new Set([...view.layers, ...(nav?.sel ? [nav.sel.split(':')[0]] : [])]));
   const [overlayParam, setOverlayParam] = useHashParam('overlay', '');
@@ -108,6 +108,9 @@ export default function MapPage({ nav, go }) {
   const { markers, loading, data } = useMarkers(dim, layers, { cfilter, mfilter, hits });
   const visible = useMemo(() => markers.filter(m => layers.has(m.layer)), [markers, layers]);
   const selected = sel ? visible.find(m => `${m.layer}:${m.key}` === sel) || null : null;
+
+  // Any visible layer is currently loading?
+  const isLoadingMarkers = Array.from(layers).some(l => loading[l]);
 
   const heatMode = HEAT[overlay] ? overlay : '';
   const heatData = useQuery('heat', undefined, { enabled: !!heatMode });
@@ -521,6 +524,7 @@ export default function MapPage({ nav, go }) {
             style={{ cursor: measure?.on ? 'crosshair' : hover?.marker ? 'pointer' : drag.current ? 'grabbing' : 'grab' }}
           />
           {surface.loading && <div className="map-overlay"><Loading text="Renderizando o terreno…" sub="Lendo cada coluna de blocos. Pode levar alguns segundos." /></div>}
+          {!surface.loading && isLoadingMarkers && <div className="map-overlay marker-loading"><Loader2 className="spin" size={20} /> <span className="muted">Buscando detalhes da camada...</span></div>}
           {surface.error && <div className="map-overlay"><ErrorBox error={surface.error} /></div>}
           {surface.data === null && <div className="map-overlay"><ErrorBox error={new Error('Esta dimensão não tem chunks gerados.')} /></div>}
           <div className="map-toolbar">
