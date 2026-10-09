@@ -50,6 +50,9 @@ const LEAVES = {
   dark_oak: [40, 100, 15], mangrove: [60, 120, 40], pale_oak: [140, 150, 140],
 };
 
+const COLOR_WORDS_KEYS = Object.keys(COLOR_WORDS).sort((a, b) => b.length - a.length);
+const WOOD_KEYS = Object.keys(WOOD).sort((a, b) => b.length - a.length);
+
 const cache = new Map();
 
 /** Returns an [r,g,b] for a block name. */
@@ -59,8 +62,8 @@ function blockColor(full) {
   const name = full.replace(/^[a-z0-9_]+:/, '');
   c = EXACT[name];
   if (!c) {
-    const colorWord = Object.keys(COLOR_WORDS).sort((a, b) => b.length - a.length).find(w => name.startsWith(`${w}_`));
-    const woodWord = Object.keys(WOOD).sort((a, b) => b.length - a.length).find(w => name.startsWith(`${w}_`) || name.includes(`_${w}_`));
+    const colorWord = COLOR_WORDS_KEYS.find(w => name.startsWith(`${w}_`));
+    const woodWord = WOOD_KEYS.find(w => name.startsWith(`${w}_`) || name.includes(`_${w}_`));
     if (/leaves/.test(name)) c = LEAVES[woodWord] || [56, 118, 29];
     else if (colorWord && /wool|carpet|concrete|terracotta|stained_glass|bed|candle|shulker|banner/.test(name)) c = COLOR_WORDS[colorWord];
     else if (woodWord && /log|wood|stem|hyphae/.test(name)) c = WOOD[woodWord].map(v => Math.round(v * 0.7));
