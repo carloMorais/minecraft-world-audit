@@ -4,6 +4,7 @@ import assert from 'node:assert';
 import { readNbt, readLevelDat } from '../src/format/nbt.js';
 import { decodeSubChunk, decodeData3D } from '../src/format/subchunk.js';
 import { parseChunkKey } from '../src/world.js';
+import { timeAgo } from '../web/src/format.js';
 
 // Tiny LE-NBT writer for building fixtures.
 function str(s) { const b = Buffer.from(s, 'utf8'); const h = Buffer.alloc(2); h.writeUInt16LE(b.length); return Buffer.concat([h, b]); }
@@ -61,4 +62,30 @@ test('parses chunk keys', () => {
   const k = Buffer.concat([i32(-3), i32(5), i32(1), Buffer.from([47, 0xfe])]);
   assert.deepStrictEqual(parseChunkKey(k), { x: -3, z: 5, dim: 1, tag: 47, tagName: 'SubChunkPrefix', subY: -2 });
   assert.strictEqual(parseChunkKey(Buffer.from('~local_player')), null);
+});
+
+test('timeAgo formats dates relatively and absolutely', (t) => {
+  const now = new Date('2023-10-10T12:00:00Z');
+  t.mock.timers.enable({ now });
+
+  assert.strictEqual(timeAgo(null), '—');
+  assert.strictEqual(timeAgo(''), '—');
+
+  // < 1 minute
+  assert.strictEqual(timeAgo('2023-10-10T11:59:30Z'), 'Agora mesmo');
+  assert.strictEqual(timeAgo('2023-10-10T11:59:01Z'), 'Agora mesmo');
+
+  // 1 to 59 minutes
+  assert.strictEqual(timeAgo('2023-10-10T11:59:00Z'), '1 min atrás');
+  assert.strictEqual(timeAgo('2023-10-10T11:45:00Z'), '15 min atrás');
+  assert.strictEqual(timeAgo('2023-10-10T11:01:00Z'), '59 min atrás');
+
+  // 1 to 23 hours
+  assert.strictEqual(timeAgo('2023-10-10T11:00:00Z'), '1h atrás');
+  assert.strictEqual(timeAgo('2023-10-10T10:00:00Z'), '2h atrás');
+  assert.strictEqual(timeAgo('2023-10-09T13:00:00Z'), '23h atrás');
+
+  // >= 24 hours (fallback to locale string)
+  const old = new Date('2023-10-09T11:00:00Z');
+  assert.strictEqual(timeAgo(old.toISOString()), old.toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' }));
 });

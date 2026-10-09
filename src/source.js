@@ -22,6 +22,11 @@ class FolderSource {
   }
   read(name) {
     const p = path.join(this.root, name);
+    const resolvedP = path.resolve(p);
+    const resolvedRoot = path.resolve(this.root);
+    if (!resolvedP.startsWith(resolvedRoot + path.sep) && resolvedP !== resolvedRoot) {
+      return null;
+    }
     return fs.existsSync(p) ? fs.readFileSync(p) : null;
   }
   close() {}

@@ -80,6 +80,11 @@ export const roman = n => ROMAN[n] || String(n);
 export function timeAgo(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000) return 'Agora mesmo';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} min atrás`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h atrás`;
   return d.toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
 }
 
