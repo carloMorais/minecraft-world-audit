@@ -1,3 +1,4 @@
+import { parseArgs } from 'util';
 import { Buffer } from 'buffer';
 import fs from 'fs';
 import path from 'path';
@@ -62,14 +63,26 @@ Opções:
 
 const DIM_IDS = { overworld: 0, nether: 1, the_end: 2, end: 2 };
 
-function parseArgs(argv) {
-  const opts = { _: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--json' || a === '--raw' || a === '--states' || a === '-h' || a === '--help') opts[a.replace(/^-+/, '')] = true;
-    else if (a.startsWith('--')) opts[a.slice(2)] = argv[++i];
-    else opts._.push(a);
-  }
+function parseArgsWrapper(argv) {
+  const { values, positionals } = parseArgs({
+    args: argv,
+    options: {
+      json: { type: 'boolean' },
+      out: { type: 'string' },
+      raw: { type: 'boolean' },
+      dim: { type: 'string' },
+      box: { type: 'string' },
+      states: { type: 'boolean' },
+      limit: { type: 'string' },
+      type: { type: 'string' },
+      help: { type: 'boolean', short: 'h' },
+      'no-blocks': { type: 'boolean' }
+    },
+    allowPositionals: true,
+    strict: false
+  });
+  const opts = { ...values, _: positionals };
+  if (opts.help) opts.h = true; // backward compatibility for options checking opts.h
   return opts;
 }
 
@@ -129,21 +142,26 @@ function playerLabel(p) {
   return `Jogador ${p.key.replace('player_server_', '')}${p.identity?.msaId ? ` (MSA ${p.identity.msaId})` : ''}`;
 }
 
+function textPlayer(p, o) {
+  o.l(`  ${playerLabel(p)}`);
+  o.kv('Modo de jogo', p.gameMode);
+  o.kv('Permissão', p.permission);
+  o.kv('Dimensão / posição', `${p.dimension} @ ${pos(p.position)}`);
+  if (p.health) o.kv('Vida', `${p.health.current}/${p.health.max}`);
+  o.kv('Fome / saturação', `${p.hunger ?? '?'} / ${p.saturation ?? '?'}`);
+  o.kv('Nível de XP', `${p.xp.level} (+${Math.round((p.xp.progress || 0) * 100)}%)`);
+  if (p.spawnPoint) o.kv('Ponto de renascimento', `${p.spawnPoint.dimension} @ ${p.spawnPoint.x} ${p.spawnPoint.y} ${p.spawnPoint.z}`);
+  o.kv('Já morreu', p.hasDiedBefore ? `sim — última morte em ${p.lastDeath?.dimension} @ ${p.lastDeath?.x} ${p.lastDeath?.y} ${p.lastDeath?.z}` : 'não');
+  o.kv('Viu os créditos (saiu do End)', p.hasSeenCredits ? 'sim' : 'não');
+  if (p.effects.length) o.kv('Efeitos', p.effects.map(e => `${e.name} ${e.amplifier + 1} (${Math.round(e.durationTicks / 20)}s)`).join(', '));
+  o.kv('Receitas desbloqueadas', p.unlockedRecipes.length);
+  if (p.tags.length) o.kv('Tags', p.tags.join(', '));
+}
+
 function textPlayers(players, o) {
+  o.h(`Jogadores (${players.length})`);
   for (const p of players) {
-    o.h(playerLabel(p));
-    o.kv('Modo de jogo', p.gameMode);
-    o.kv('Permissão', p.permission);
-    o.kv('Dimensão / posição', `${p.dimension} @ ${pos(p.position)}`);
-    if (p.health) o.kv('Vida', `${p.health.current}/${p.health.max}`);
-    o.kv('Fome / saturação', `${p.hunger ?? '?'} / ${p.saturation ?? '?'}`);
-    o.kv('Nível de XP', `${p.xp.level} (+${Math.round((p.xp.progress || 0) * 100)}%)`);
-    if (p.spawnPoint) o.kv('Ponto de renascimento', `${p.spawnPoint.dimension} @ ${p.spawnPoint.x} ${p.spawnPoint.y} ${p.spawnPoint.z}`);
-    o.kv('Já morreu', p.hasDiedBefore ? `sim — última morte em ${p.lastDeath?.dimension} @ ${p.lastDeath?.x} ${p.lastDeath?.y} ${p.lastDeath?.z}` : 'não');
-    o.kv('Viu os créditos (saiu do End)', p.hasSeenCredits ? 'sim' : 'não');
-    if (p.effects.length) o.kv('Efeitos', p.effects.map(e => `${e.name} ${e.amplifier + 1} (${Math.round(e.durationTicks / 20)}s)`).join(', '));
-    o.kv('Receitas desbloqueadas', p.unlockedRecipes.length);
-    if (p.tags.length) o.kv('Tags', p.tags.join(', '));
+    textPlayer(p, o);
   }
 }
 
@@ -230,7 +248,7 @@ function keyFromArg(arg) {
 }
 
 function run(argv) {
-  const opts = parseArgs(argv);
+  const opts = parseArgsWrapper(argv);
   if (opts.help || opts.h || opts._.length === 0) { process.stdout.write(HELP); return 0; }
   let [cmd, target, ...rest] = opts._;
   if (!target && fs.existsSync(cmd)) { target = cmd; cmd = 'summary'; }

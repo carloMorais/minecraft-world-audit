@@ -13,9 +13,9 @@ import { join, resolve } from 'node:path';
 const ROOT = resolve(import.meta.dirname, '../..');
 const PAGES = [
   'overview', 'map', 'map?view=bases', 'map?view=bases&sel=bases:1', 'map?view=containers', 'map?view=villagers', 'map?view=portals',
-  'map?view=mobs', 'map?view=lag', 'map?view=biomes', 'map?view=search&q=diamond', 'map?view=search&mode=blocks&q=diamond_ore&dim=overworld',
+  'map?view=mobs', 'map?view=animals', 'map?view=lag', 'map?view=biomes', 'map?view=graveyard', 'map?view=search&q=diamond', 'map?view=search&mode=blocks&q=diamond_ore&dim=overworld',
   'progress', 'players', 'players?view=compare', 'players?tab=wealth', 'players?tab=gear',
-  'items?q=diamond', 'items?tab=containers', 'items?tab=storage', 'items?tab=trades', 'items?tab=maps',
+  'items?q=diamond', 'items?tab=containers', 'items?tab=containers&loot=1', 'items?tab=storage', 'items?tab=trades', 'items?tab=maps',
   'terrain', 'terrain?tab=ores&ore=diamond', 'compare', 'advanced', 'advanced?tab=config', 'advanced?tab=records',
   // old addresses redirect to their new home
   'bases?id=1', 'entities', 'world?tab=scoreboard',

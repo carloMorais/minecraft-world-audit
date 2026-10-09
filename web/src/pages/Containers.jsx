@@ -37,6 +37,7 @@ export default function Containers({ go }) {
   const state = useQuery('containers');
   const [type, setType] = useHashParam('type', 'all');
   const [q, setQ] = useHashParam('q', '');
+  const [loot, setLoot] = useHashParam('loot', '');
   const [limit, setLimit] = useState(60);
   return (
     <>
@@ -46,9 +47,11 @@ export default function Containers({ go }) {
           for (const b of all) types[b.id] = (types[b.id] || 0) + 1;
           const re = q ? new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
           const matches = it => re.test(it.item) || re.test(prettyName(it.item)) || (it.customName && re.test(it.customName)) || it.contents?.some(matches);
+          const lootCount = all.filter(b => b.lootTable).length;
           const list = all
             .filter(b => type === 'all' || b.id === type)
-            .filter(b => !re || [...(b.items || []), b.item, b.record, b.book].filter(Boolean).some(matches) || re.test(b.customName || '') || (b.lootTable && re.test('loot')))
+            .filter(b => !re || [...(b.items || []), b.item, b.record, b.book].filter(Boolean).some(matches) || re.test(b.customName || ''))
+            .filter(b => !loot || b.lootTable)
             .sort((a, b) => (b.items?.length || 0) - (a.items?.length || 0));
           return (
             <>
@@ -57,11 +60,12 @@ export default function Containers({ go }) {
               </div>
               <div className="toolbar">
                 <SearchInput value={q} onChange={setQ} placeholder="Procurar containers que tenham… (ex.: diamond, elytra, totem)" />
+                {lootCount > 0 && <button type="button" className={`chip${loot ? ' chip-active' : ''}`} aria-pressed={!!loot} onClick={() => setLoot(loot ? '' : '1')} title="Baús de estruturas que ninguém abriu ainda: o loot é sorteado quando alguém abre">Só loot intacto ({fmt(lootCount)})</button>}
                 <span className="muted nowrap">{fmt(list.length)} {list.length === 1 ? 'container' : 'containers'}</span>
               </div>
               {list.length === 0 ? (
                 <Empty text={q ? `Nenhum container com “${q}”` : 'Nenhum container encontrado'}>
-                  {(q || type !== 'all') && <button type="button" className="link-btn" onClick={() => { setQ(''); setType('all'); }}>Limpar filtros</button>}
+                  {(q || loot || type !== 'all') && <button type="button" className="link-btn" onClick={() => { setQ(''); setLoot(''); setType('all'); }}>Limpar filtros</button>}
                 </Empty>
               ) : (
                 <TooltipScope>

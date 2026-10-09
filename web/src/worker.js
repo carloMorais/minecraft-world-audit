@@ -140,7 +140,7 @@ const methods = {
   },
 };
 
-function toRegex(q) {
+export function toRegex(q) {
   if (!q) throw new Error('busca vazia');
   try { return new RegExp(q, 'i'); } catch { return new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'); }
 }

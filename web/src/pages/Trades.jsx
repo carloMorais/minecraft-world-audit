@@ -1,11 +1,11 @@
 // Itens › Livros e trocas: the villager economy (where villagers live is on the map's "Vilas e aldeões" view).
 import { useMemo } from 'react';
-import { BookOpen, Gem, Map as MapIcon, Home, ShieldAlert } from 'lucide-react';
+import { BookOpen, Gem, Map as MapIcon } from 'lucide-react';
 import { useQuery } from '../client.js';
 import { Panel, Async, Badge, CoordLink, Empty, useSort } from '../components/ui.jsx';
 import { ItemIcon } from '../components/icons.jsx';
 import McText from '../components/McText.jsx';
-import { fmt, prettyName, mobName, ENCHANT_LABEL, roman, DIM_LABEL, DIM_COLOR } from '../format.js';
+import { fmt, prettyName, mobName, ENCHANT_LABEL, roman } from '../format.js';
 import { PROFESSION, profKey, TRADE_TIER, ENCHANT_MAX, emeraldsIn } from '../domain.js';
 
 const villagerName = v => (v.customName ? <McText text={v.customName} /> : PROFESSION[profKey(v)] || mobName(v.type));
@@ -85,62 +85,17 @@ function EmeraldSources({ villagers, go }) {
   );
 }
 
-function Villages({ villages, go }) {
-  const [rows, th] = useSort(villages, {
-    dwellers: v => v.dwellers,
-    dim: v => v.dimension,
-  }, '-dwellers');
-
-  if (!villages.length) return <Empty text="Nenhuma vila detectada" />;
-  return (
-    <div className="table-wrap short">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Status</th>
-            {th('dwellers', 'Habitantes', { className: 'num', firstDesc: true })}
-            {th('dim', 'Dimensão')}
-            <th>Local</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(v => {
-            const center = [
-              (v.bounds.x[0] + v.bounds.x[1]) / 2,
-              (v.bounds.y[0] + v.bounds.y[1]) / 2,
-              (v.bounds.z[0] + v.bounds.z[1]) / 2
-            ];
-            return (
-              <tr key={v.id}>
-                <td>
-                  {v.raid ? <Badge tone="red" title="A vila está sob ataque (Invasão)"><ShieldAlert size={12} /> Invasão</Badge> : <Badge tone="green">Pacífica</Badge>}
-                </td>
-                <td className="num"><strong>{fmt(v.dwellers)}</strong></td>
-                <td><span className="dot" style={{ background: DIM_COLOR[v.dimension] }} /> {DIM_LABEL[v.dimension] || v.dimension}</td>
-                <td className="nowrap"><CoordLink go={go} dim={v.dimension} position={center} label={`Vila ${v.id.substring(0,6)}`} /></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 export default function Trades({ go }) {
   const state = useQuery('villagers');
   return (
     <Async state={state} loadingText="Lendo as trocas dos aldeões…">
-      {({ villagers: all, villages }) => {
+      {({ villagers: all }) => {
         const villagers = all.filter(v => /villager/.test(v.type));
         return (
           <>
             <div className="toolbar">
               <button type="button" className="btn" onClick={() => go('map', { view: 'villagers' })}><MapIcon size={15} /> Ver aldeões, vilas e aglomerações no mapa</button>
             </div>
-            <Panel title="Saúde das Vilas" icon={Home} actions={<small className="muted">{fmt(villages?.length || 0)} vilas registradas pelo jogo</small>}>
-              <Villages villages={villages || []} go={go} />
-            </Panel>
             <Panel title="Livros encantados à venda" icon={BookOpen} actions={<small className="muted">o preço mais baixo de cada encantamento</small>}>
               <BookDeals villagers={villagers} go={go} />
             </Panel>

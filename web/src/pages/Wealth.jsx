@@ -81,9 +81,9 @@ export default function Wealth({ go }) {
                   />
                 </Panel>
                 {W.hoarders?.length > 0 && (
-                  <Panel title="Acumuladores (Hoarders)" icon={Trash2} actions={<small className="muted">itens comuns/lixo (pedra, terra, etc.)</small>}>
+                  <Panel title="Acumuladores" icon={Trash2} actions={<small className="muted">blocos comuns no inventário e no baú do End</small>}>
                     <BarList
-                      rows={W.hoarders.map(p => ({ key: p.key, label: names.get(p.key) || p.key, value: p.junk, color: 'var(--red)', hint: `${names.get(p.key)}: acumulou ${fmt(p.junk)} itens comuns/lixo` }))}
+                      rows={W.hoarders.map(p => ({ key: p.key, label: names.get(p.key) || p.key, value: p.junk, color: 'var(--red)', hint: `${names.get(p.key)}: ${fmt(p.junk)} blocos e itens comuns (terra, pedra, cascalho…)` }))}
                       format={fmt}
                       onSelect={r => go('players', { p: r.key })}
                     />

@@ -1,6 +1,6 @@
 import {
   CalendarDays, Clock, ChevronRight, Gem, Users, PawPrint, Mountain, Archive, Copy, Check, Heart, Star,
-  Castle, Store, Waypoints, Gauge, Trees, MapPin
+  Castle, Store, Waypoints, Gauge, Trees, Skull,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '../client.js';
@@ -92,7 +92,8 @@ function Treasures({ totals, go }) {
 
 const MAP_VIEWS = [
   ['bases', 'Bases', Castle], ['containers', 'Baús', Archive], ['villagers', 'Vilas e aldeões', Store], ['portals', 'Portais', Waypoints],
-  ['mobs', 'Mobs', PawPrint], ['animals', 'Zoológico e Pets', PawPrint], ['lag', 'Lag e farms', Gauge], ['biomes', 'Biomas', Trees], ['graveyard', 'Cemitério', MapPin]
+  ['mobs', 'Mobs', PawPrint], ['animals', 'Zoológico e pets', PawPrint], ['lag', 'Lag e farms', Gauge], ['biomes', 'Biomas', Trees],
+  ['graveyard', 'Cemitério', Skull],
 ];
 
 export default function Overview({ icon, go }) {
@@ -123,24 +124,21 @@ export default function Overview({ icon, go }) {
 
             <div className="grid-2">
               {players.data && <PlayersPanel players={players.data} go={go} />}
-              <details className="panel panel-collapsible" open>
-                <summary><h3><Mountain size={16} />Exploração por dimensão</h3></summary>
-                <div className="panel-body">
-                  <div className="dim-bars">
-                    {sortDims(Object.keys(S.coverage)).map(d => [d, S.coverage[d]]).map(([d, c]) => (
-                      <button type="button" key={d} className="dim-bar" onClick={() => go('map', { dim: d })} title={`Abrir o mapa do ${DIM_LABEL[d]}`}>
-                        <div className="dim-bar-head"><span className="dot" style={{ background: DIM_COLOR[d] }} />{DIM_LABEL[d]}<b>{fmt(c.chunks)} chunks</b></div>
-                        <div className="track"><span style={{ width: `${(100 * c.chunks) / totalChunks}%`, background: DIM_COLOR[d] }} /></div>
-                        <small>x {fmt(c.boundsBlocks.x[0])} → {fmt(c.boundsBlocks.x[1])} · z {fmt(c.boundsBlocks.z[0])} → {fmt(c.boundsBlocks.z[1])} · Distância máx: {fmt(Math.max(Math.abs(c.boundsBlocks.x[0]), Math.abs(c.boundsBlocks.x[1]), Math.abs(c.boundsBlocks.z[0]), Math.abs(c.boundsBlocks.z[1])))} blocos</small>
-                      </button>
-                    ))}
-                  </div>
-                  <h4 className="sub-head">Explorar no mapa</h4>
-                  <div className="view-links">
-                    {MAP_VIEWS.map(([id, label, Icon]) => <button type="button" key={id} className="chip" onClick={() => go('map', { view: id })}><Icon size={14} /> {label}</button>)}
-                  </div>
+              <Panel title="Exploração por dimensão" icon={Mountain}>
+                <div className="dim-bars">
+                  {sortDims(Object.keys(S.coverage)).map(d => [d, S.coverage[d]]).map(([d, c]) => (
+                    <button type="button" key={d} className="dim-bar" onClick={() => go('map', { dim: d })} title={`Abrir o mapa do ${DIM_LABEL[d]}`}>
+                      <div className="dim-bar-head"><span className="dot" style={{ background: DIM_COLOR[d] }} />{DIM_LABEL[d]}<b>{fmt(c.chunks)} chunks</b></div>
+                      <div className="track"><span style={{ width: `${(100 * c.chunks) / totalChunks}%`, background: DIM_COLOR[d] }} /></div>
+                      <small>x {fmt(c.boundsBlocks.x[0])} → {fmt(c.boundsBlocks.x[1])} · z {fmt(c.boundsBlocks.z[0])} → {fmt(c.boundsBlocks.z[1])} · até {fmt(Math.max(...c.boundsBlocks.x.map(Math.abs), ...c.boundsBlocks.z.map(Math.abs)))} blocos da origem</small>
+                    </button>
+                  ))}
                 </div>
-              </details>
+                <h4 className="sub-head">Explorar no mapa</h4>
+                <div className="view-links">
+                  {MAP_VIEWS.map(([id, label, Icon]) => <button type="button" key={id} className="chip" onClick={() => go('map', { view: id })}><Icon size={14} /> {label}</button>)}
+                </div>
+              </Panel>
             </div>
 
             <div className="grid-2">

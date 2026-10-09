@@ -26,7 +26,21 @@ const ORES = [
   ['nether_gold', /^minecraft:nether_gold_ore$/],
   ['ancient_debris', /^minecraft:ancient_debris$/],
 ];
-const oreOf = name => ORES.find(([, re]) => re.test(name))?.[0];
+const EXACT_ORES = new Map();
+const addOre = (name, variations) => variations.forEach(v => EXACT_ORES.set(`minecraft:${v}`, name));
+addOre('coal', ['coal_ore', 'deepslate_coal_ore']);
+addOre('copper', ['copper_ore', 'deepslate_copper_ore']);
+addOre('iron', ['iron_ore', 'deepslate_iron_ore']);
+addOre('gold', ['gold_ore', 'deepslate_gold_ore']);
+addOre('redstone', ['redstone_ore', 'deepslate_redstone_ore', 'lit_redstone_ore', 'lit_deepslate_redstone_ore']);
+addOre('lapis', ['lapis_ore', 'deepslate_lapis_ore']);
+addOre('diamond', ['diamond_ore', 'deepslate_diamond_ore']);
+addOre('emerald', ['emerald_ore', 'deepslate_emerald_ore']);
+addOre('quartz', ['quartz_ore']);
+addOre('nether_gold', ['nether_gold_ore']);
+addOre('ancient_debris', ['ancient_debris']);
+
+const oreOf = name => EXACT_ORES.get(name);
 // Planks of rarer woods are in the census hints, but mansions and villages are made of them.
 const isPlayerMade = name => !/_planks$/.test(name) && PLAYER_MADE_HINTS.some(re => re.test(name));
 
@@ -426,7 +440,13 @@ const CAPACITY = { Chest: 27, Barrel: 27, ShulkerBox: 27, Hopper: 5, Dispenser: 
 
 /** Fullness of each container, items spread over many containers and slots that merging stacks would free. */
 function storageReport(blockEntities, bases = []) {
-  const baseOf = (dim, p) => bases.find(b => b.dimension === dim && b.chunkList.some(([x, z]) => x === Math.floor(p[0] / 16) && z === Math.floor(p[2] / 16)));
+  const chunkMap = new Map();
+  for (const b of bases) {
+    for (const [x, z] of b.chunkList) {
+      chunkMap.set(`${b.dimension}:${x}:${z}`, b);
+    }
+  }
+  const baseOf = (dim, p) => chunkMap.get(`${dim}:${Math.floor(p[0] / 16)}:${Math.floor(p[2] / 16)}`);
   const containers = [];
   const spread = {};
   let used = 0, capacity = 0;
@@ -501,15 +521,18 @@ function gearReport(players, blockEntities, entities) {
 
 // ---------- wealth ----------
 
+// Common blocks nobody needs a chest of; a pile of them in a player's pockets is hoarding.
+const JUNK = /^minecraft:(dirt|coarse_dirt|cobblestone|cobbled_deepslate|stone|gravel|sand|netherrack|andesite|diorite|granite|tuff|deepslate|rotten_flesh|poisonous_potato|spider_eye|bone|string)$/;
+
 /** Estimated value (in diamonds) per player, per base and for the whole world. */
 function wealthReport(players, blockEntities, entities, bases) {
   const ranked = [];
   for (const p of players) {
     const carried = [...p.inventory, ...p.armor.filter(Boolean), ...p.offhand];
-    let inv = 0, ender = 0;
-    for (const it of flattenItems(carried)) inv += itemValue(it);
-    for (const it of flattenItems(p.enderChest)) ender += itemValue(it);
-    ranked.push({ key: p.key, role: p.role, carried: Math.round(inv), enderChest: Math.round(ender), total: Math.round(inv + ender) });
+    let inv = 0, ender = 0, junk = 0;
+    for (const it of flattenItems(carried)) { inv += itemValue(it); if (JUNK.test(it.item)) junk += it.count; }
+    for (const it of flattenItems(p.enderChest)) { ender += itemValue(it); if (JUNK.test(it.item)) junk += it.count; }
+    ranked.push({ key: p.key, role: p.role, carried: Math.round(inv), enderChest: Math.round(ender), total: Math.round(inv + ender), junk });
   }
   const top = [];
   let world = 0;
@@ -524,6 +547,7 @@ function wealthReport(players, blockEntities, entities, bases) {
   return {
     world: Math.round(world),
     players: ranked.sort((a, b) => b.total - a.total),
+    hoarders: ranked.filter(p => p.junk > 0).sort((a, b) => b.junk - a.junk),
     bases: bases.map(b => ({ id: b.id, name: b.name, dimension: b.dimension, center: b.center, value: b.value })).sort((a, b) => b.value - a.value),
     top: top.slice(0, 100),
   };
