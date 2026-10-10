@@ -589,7 +589,7 @@ export default function MapPage({ nav, go }) {
               <form className="search search-sm goto" onSubmit={runGoto}>
                 <Navigation size={14} aria-hidden="true" />
                 <input value={goto} onChange={e => setGoto(e.target.value)} placeholder="Ir para X, Z (ex.: 120, -340)" aria-label="Ir para coordenada" inputMode="numeric" spellCheck={false} />
-                <button type="submit" className="btn btn-sm" disabled={!parseCoords(goto)}>Ir</button>
+                <button type="submit" className="btn btn-sm" disabled={!parseCoords(goto)} title={goto && !parseCoords(goto) ? 'Digite coordenadas válidas (ex.: 120, -340)' : 'Ir para coordenada'}>Ir</button>
               </form>
               <h4>Sobreposição</h4>
               <div className="heat-picker" role="radiogroup" aria-label="Sobreposição">
