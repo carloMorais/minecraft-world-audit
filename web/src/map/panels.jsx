@@ -121,7 +121,7 @@ function ContainerFilter({ all, dim, value, onChange, shown }) {
       )}
       <div className="cfilter-types">
         {ordered.map(([t, n]) => (
-          <button type="button" key={t} className={`ctype${isOn(t) ? ' on' : ''}`} onClick={() => toggleType(t)} style={{ '--c': CONTAINER_COLOR[t] || '#d9a14a' }}>
+          <button type="button" key={t} className={`ctype${isOn(t) ? ' on' : ''}`} onClick={() => toggleType(t)} style={{ '--c': CONTAINER_COLOR[t] || '#d9a14a' }} aria-pressed={isOn(t)} title={CONTAINER_LABEL[t] || t}>
             <span className="sq" /> {CONTAINER_LABEL[t] || t} <small>{n}</small>
           </button>
         ))}
